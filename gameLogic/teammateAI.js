@@ -1,6 +1,6 @@
 import { generateUniqueId } from '../utils/idGenerator.js';
 import { EntityType } from '../types.js';
-import { TEAMMATE_DETECTION_RADIUS, TEAMMATE_SHOOT_RANGE, TEAMMATE_SHOOT_COOLDOWN_MS, TEAMMATE_BULLET_SPEED, TEAMMATE_BULLET_DAMAGE, TEAMMATE_BULLET_COLOR, TEAMMATE_BULLET_MAX_TRAVEL_DISTANCE, BULLET_SIZE, AI_TARGET_ARRIVAL_THRESHOLD, TEAMMATE_FORMATION_POSITION_TOLERANCE, ALL_TEAMMATE_FORMATION_OFFSETS, GAME_LOOP_INTERVAL, STUCK_TIMEOUT_TICKS, TEAMMATE_SIZE, AI_PATIENCE_THRESHOLD, AI_EVASIVE_MANEUVER_COOLDOWN_MS, AI_EVASIVE_DODGE_CHANCE, AI_EVASIVE_STRAFE_DISTANCE, AI_UNDER_FIRE_DURATION_TICKS, GUNSHOT_VOLUME, PLAYER_STATIONARY_THRESHOLD_TICKS, PLAYER_MOVEMENT_HISTORY_MIN_FOR_SMOOTHING, TEAMMATE_FORMATION_TARGET_LERP_FACTOR } from '../constants.js';
+import { TEAMMATE_DETECTION_RADIUS, TEAMMATE_SHOOT_RANGE, TEAMMATE_SHOOT_COOLDOWN_MS, TEAMMATE_BULLET_SPEED, TEAMMATE_BULLET_DAMAGE_MIN, TEAMMATE_BULLET_DAMAGE_MAX, TEAMMATE_BULLET_COLOR, TEAMMATE_BULLET_MAX_TRAVEL_DISTANCE, BULLET_SIZE, AI_TARGET_ARRIVAL_THRESHOLD, TEAMMATE_FORMATION_POSITION_TOLERANCE, ALL_TEAMMATE_FORMATION_OFFSETS, GAME_LOOP_INTERVAL, STUCK_TIMEOUT_TICKS, TEAMMATE_SIZE, AI_PATIENCE_THRESHOLD, AI_EVASIVE_MANEUVER_COOLDOWN_MS, AI_EVASIVE_DODGE_CHANCE, AI_EVASIVE_STRAFE_DISTANCE, AI_UNDER_FIRE_DURATION_TICKS, GUNSHOT_VOLUME, PLAYER_STATIONARY_THRESHOLD_TICKS, PLAYER_MOVEMENT_HISTORY_MIN_FOR_SMOOTHING, TEAMMATE_FORMATION_TARGET_LERP_FACTOR } from '../constants.js';
 import { hasLineOfSight, isPositionWalkable } from './mapGenerator.js';
 import { processAIMovement, triggerAIEvasiveManeuver, predictTargetPosition } from './aiUtils.js';
 import { getAverageMovementVector } from '../utils/vectorUtils.js';
@@ -120,12 +120,14 @@ const update = (
 
                 const bulletDx = distToPredicted > 0 ? (dxToPredicted / distToPredicted) * TEAMMATE_BULLET_SPEED : 0;
                 const bulletDy = distToPredicted > 0 ? (dyToPredicted / distToPredicted) * TEAMMATE_BULLET_SPEED : 0;
+                  // Calculate random damage within teammate's damage range
+                const randomDamage = Math.floor(Math.random() * (TEAMMATE_BULLET_DAMAGE_MAX - TEAMMATE_BULLET_DAMAGE_MIN + 1)) + TEAMMATE_BULLET_DAMAGE_MIN;
                 
                 newBullets.push({
                     id: generateUniqueId(`bullet-tm-${teammate.id}`), type: EntityType.BULLET,
                     x: shooterCenterPos.x - BULLET_SIZE / 2, y: shooterCenterPos.y - BULLET_SIZE / 2,
                     width: BULLET_SIZE, height: BULLET_SIZE, color: TEAMMATE_BULLET_COLOR,
-                    dx: bulletDx, dy: bulletDy, ownerId: teammate.id, damage: TEAMMATE_BULLET_DAMAGE,
+                    dx: bulletDx, dy: bulletDy, ownerId: teammate.id, damage: randomDamage,
                     maxTravelDistance: TEAMMATE_BULLET_MAX_TRAVEL_DISTANCE, traveledDistance: 0,
                 });
                 teammate.lastShotTime = newGameTime;
