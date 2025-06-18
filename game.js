@@ -101,11 +101,10 @@ async function resetAndStartGame(environmentType) {
         }
 
         gameState.sectors = getSectors();
-
         console.log('[game.js] resetAndStartGame: initializeGameWorld COMPLETED SUCCESSFULLY.');
         currentScreen = 'game';
         if (controlsDisplay) {
-            controlsDisplay.textContent = "Controls: WASD/Arrows to Move. Left-Click to Shoot. Right-Click (Selected Teammate) to Move/Waypoint (Shift+RMB). R to Recall. F to Cycle Formation. 1/2/3 to Select/Deselect Teammate. ESC to Deselect. Space to Pause.";
+            controlsDisplay.textContent = ""; // Clear controls instructions in main game view
         }
     } catch (error) {
         console.error("[game.js] resetAndStartGame: Error during initializeGameWorld call or subsequent setup:", error, error.stack);
@@ -119,7 +118,7 @@ const mousePosition = { x: 0, y: 0 };
 
 function handleKeyDown(e) {
     const key = e.key; 
-     if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'r', 'f', '1', '2', '3', 'Escape'].includes(key)) {
+    if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'r', 'f', '1', '2', '3', 'Escape'].includes(key)) {
         e.preventDefault();
     }
 
@@ -134,7 +133,9 @@ function handleKeyDown(e) {
         gameState.keysPressed[key.toLowerCase()] = true; 
         if (key === 'r' && gameState.player && gameState.map) {
             const TILE_SIZE = gameState.map.tileSize;
-            gameState.teammates = updateTeammatesAI.handleRecall(gameState.teammates, gameState.player, gameState.currentFormationShape, gameState.gameTime, TILE_SIZE);
+            gameState.teammates = updateTeammatesAI.handleRecall(
+                gameState.teammates, gameState.player, gameState.currentFormationShape, gameState.gameTime, TILE_SIZE
+            );
         }
         if (key === 'f') {
             cycleFormation();
@@ -142,19 +143,19 @@ function handleKeyDown(e) {
         if (key === 'Escape') {
             gameState.selectedTeammateIds = [];
         }
-        if (['1', '2', '3'].includes(key)) {
+        if (["1", "2", "3"].includes(key)) {
             const tmIndex = parseInt(key) - 1;
-            if (gameState.teammates && gameState.teammates[tmIndex] && gameState.teammates[tmIndex].health > 0) {
+            if (
+                gameState.teammates &&
+                gameState.teammates[tmIndex] &&
+                gameState.teammates[tmIndex].health > 0
+            ) {
                 const teammateId = gameState.teammates[tmIndex].id;
-                if (!gameState.keysPressed['shift']) {
-                    gameState.selectedTeammateIds = [teammateId];
+                const selectedIndex = gameState.selectedTeammateIds.indexOf(teammateId);
+                if (selectedIndex > -1) {
+                    gameState.selectedTeammateIds.splice(selectedIndex, 1);
                 } else {
-                    const selectedIndex = gameState.selectedTeammateIds.indexOf(teammateId);
-                    if (selectedIndex > -1) {
-                        gameState.selectedTeammateIds.splice(selectedIndex, 1);
-                    } else {
-                        gameState.selectedTeammateIds.push(teammateId);
-                    }
+                    gameState.selectedTeammateIds.push(teammateId);
                 }
             }
         }
@@ -891,7 +892,7 @@ function renderEnvironmentSelectionScreen() {
     ctx.font = "8px 'Press Start 2P'";
     ctx.fillText('Trees & Trails', startX_row + buttonWidth + spacing + buttonWidth / 2, row2Y + buttonHeight / 2 + 15);
 
-    if(controlsDisplay) controlsDisplay.textContent = "Click an environment to begin.";
+    if(controlsDisplay) controlsDisplay.textContent = "Controls: WASD/Arrows to Move. Left-Click to Shoot. Right-Click (Selected Teammate) to Move/Waypoint (Shift+RMB). R to Recall. F to Cycle Formation. 1/2/3 to Select/Deselect Teammate. ESC to Deselect. Space to Pause.";
     console.log('[game.js] renderEnvironmentSelectionScreen: EXIT');
 }
 
@@ -949,7 +950,7 @@ function renderPauseScreen() {
     ctx.fillRect(canvas.width/2 - 100, canvas.height/2 + 90, 200, 50);
     ctx.fillStyle = '#000000';
     ctx.fillText('Restart', canvas.width / 2, canvas.height/2 + 120);
-     if(controlsDisplay) controlsDisplay.textContent = "Game Paused. Click Resume or Restart.";
+     if(controlsDisplay) controlsDisplay.textContent = "Controls: WASD/Arrows to Move. Left-Click to Shoot. Right-Click (Selected Teammate) to Move/Waypoint (Shift+RMB). R to Recall. F to Cycle Formation. 1/2/3 to Select/Deselect Teammate. ESC to Deselect. Space to Pause.";
     console.log('[game.js] renderPauseScreen: EXIT');
 }
 
