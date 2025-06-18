@@ -20,7 +20,7 @@ export const PLAYER_BULLET_SPEED = 3.2;
 export const PLAYER_BULLET_DAMAGE_MIN = 5; 
 export const PLAYER_BULLET_DAMAGE_MAX = 60; 
 export const PLAYER_BULLET_WALL_DAMAGE = 25;
-export const PLAYER_BULLET_MAX_TRAVEL_DISTANCE = TILE_SIZE * 30;
+export const PLAYER_BULLET_MAX_TRAVEL_DISTANCE = TILE_SIZE * 26; // Increased by 20% from 21
 export const PLAYER_BULLET_COLOR = '#7DD3FC';
 export const PLAYER_STATIONARY_THRESHOLD_TICKS = 50; 
 export const PLAYER_MOVEMENT_HISTORY_LENGTH = 20; 
@@ -62,13 +62,13 @@ export const ENEMY_SQUAD_FORMATION_SHAPES = [FormationShape.DIAMOND, FormationSh
 
 export const TEAMMATE_FORMATION_TARGET_LERP_FACTOR = 0.08;
 
-export const TEAMMATE_DETECTION_RADIUS = TILE_SIZE * 28;
-export const TEAMMATE_SHOOT_RANGE = TILE_SIZE * 25;
+export const TEAMMATE_DETECTION_RADIUS = TILE_SIZE * 24;       // Increased by 20% from 20
+export const TEAMMATE_SHOOT_RANGE = TILE_SIZE * 21;           // Increased by 20% from 17
 export const TEAMMATE_SHOOT_COOLDOWN_MS = 1260; 
 export const TEAMMATE_BULLET_SPEED = 3.2; 
 export const TEAMMATE_BULLET_DAMAGE = 10;
 export const TEAMMATE_BULLET_COLOR = '#7DD3FC'; 
-export const TEAMMATE_BULLET_MAX_TRAVEL_DISTANCE = TILE_SIZE * 28;
+export const TEAMMATE_BULLET_MAX_TRAVEL_DISTANCE = TILE_SIZE * 24;    // Increased by 20% from 20
 export const TEAMMATE_HOLD_POSITION_DURATION_TICKS = 6000;
 
 export const ENEMY_SIZE = TILE_SIZE * 0.7;
@@ -99,18 +99,18 @@ export const BULLET_SIZE = TILE_SIZE * 0.25;
 export const ENEMY_BULLET_SPEED = 2.2; 
 export const ENEMY_BULLET_DAMAGE = 5;
 export const ENEMY_BULLET_COLOR = '#EF4444'; 
-export const ENEMY_DETECTION_RADIUS = TILE_SIZE * 30; // Individual detection, squad might amplify
-export const ENEMY_SHOOT_RANGE = TILE_SIZE * 22; // Base for soldier
+export const ENEMY_DETECTION_RADIUS = TILE_SIZE * 27;        // Increased by 20% from 22
+export const ENEMY_SHOOT_RANGE = TILE_SIZE * 18;            // Increased by 20% from 15
 export const ENEMY_SOLDIER_SHOOT_COOLDOWN_MS = 1260; 
 
 // Grenadier Specific Stats
-export const ENEMY_GRENADIER_SHOOT_RANGE = TILE_SIZE * 14;
+export const ENEMY_GRENADIER_SHOOT_RANGE = TILE_SIZE * 12;   // Increased by 20% from 10
 export const ENEMY_GRENADIER_SHOOT_COOLDOWN_MS = 2000;
 export const ENEMY_GRENADIER_BULLET_SPEED = 1.7;
 export const ENEMY_GRENADIER_BULLET_DAMAGE = 18;
 
 // Boss Specific Stats (for HVT Boss and Generic non-squad Bosses)
-export const ENEMY_BOSS_SHOOT_RANGE = TILE_SIZE * 28; 
+export const ENEMY_BOSS_SHOOT_RANGE = TILE_SIZE * 24;       // Increased by 20% from 20
 export const ENEMY_BOSS_SHOOT_COOLDOWN_MS = 1200; 
 export const ENEMY_BOSS_BULLET_DAMAGE = 4; 
 
@@ -123,9 +123,9 @@ export const GAME_LOOP_INTERVAL = 50;
 export const WALL_HEALTH = 100;
 export const FENCE_HEALTH = 30;
 
-export const ENEMY_SOLDIER_BULLET_MAX_TRAVEL_DISTANCE = TILE_SIZE * 25;
-export const ENEMY_GRENADIER_BULLET_MAX_TRAVEL_DISTANCE = TILE_SIZE * 20;
-export const ENEMY_BOSS_BULLET_MAX_TRAVEL_DISTANCE = TILE_SIZE * 30; 
+export const ENEMY_SOLDIER_BULLET_MAX_TRAVEL_DISTANCE = TILE_SIZE * 21;    // Increased by 20% from 17
+export const ENEMY_GRENADIER_BULLET_MAX_TRAVEL_DISTANCE = TILE_SIZE * 17;    // Increased by 20% from 14
+export const ENEMY_BOSS_BULLET_MAX_TRAVEL_DISTANCE = TILE_SIZE * 26;         // Increased by 20% from 21
 
 export const WALL_COLOR = '#44403C';           
 export const WALL_DAMAGED_COLOR = '#78716C';   // stone-500
@@ -208,4 +208,4 @@ export const ENEMY_SIGHTED_SOUND_COOLDOWN_MS = 8000;
 export const ENEMY_SIGHTED_SOUND_CHANCE = 0.4;
 export const BASE_SOUND_NOTE_ENEMY_SIGHTED = 600;
 
-export const DEFEND_RADIUS_TILES = 10;
+export const DEFEND_RADIUS_TILES = 5;
