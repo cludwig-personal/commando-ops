@@ -294,6 +294,77 @@ export const processAIMovement = (
     finalBlockedByCharacterId = walkableCheck.blockedByCharacterId || finalBlockedByCharacterId;
   }
 
+  // --- Path Node Validation: Ensure next path node is fully walkable for AI's bounding box ---
+  if (char.currentPath && char.currentPathIndex < char.currentPath.length) {
+    // Validate the next node before moving towards it
+    let nextNodeValid = false;
+    let validationIndex = char.currentPathIndex;
+    while (validationIndex < char.currentPath.length) {
+      const nodeCenter = char.currentPath[validationIndex];
+      const nodeTopLeft = { x: nodeCenter.x - char.width / 2, y: nodeCenter.y - char.height / 2 };
+      const nodeWalkable = isPositionWalkable(nodeTopLeft, char.width, char.height, map, char.id, allCharacters.filter(c => c.id !== char.id && (c.health === undefined || c.health > 0) && (c.type !== EntityType.INTEL_ITEM || !c.isCollected)));
+      if (nodeWalkable.isWalkable) {
+        nextNodeValid = true;
+        if (validationIndex !== char.currentPathIndex) {
+          // Skip to the next valid node
+          char.currentPathIndex = validationIndex;
+        }
+        break;
+      }
+      validationIndex++;
+    }
+    if (!nextNodeValid) {
+      // No valid node found, replan path
+      char.currentPath = null;
+      char.currentPathIndex = 0;
+    }
+  }
+
+  // --- Corner Escape Logic: Detect if stuck in a corner and try to escape ---
+  if (!moved && isCurrentlyWalkable.isWalkable && !finalBlockedByCharacterId && char.type !== EntityType.PLAYER) {
+    // Check for corner: walls on two of four sides (N/S/E/W)
+    const directions = [
+      { dx: 0, dy: -1 }, // up
+      { dx: 0, dy: 1 },  // down
+      { dx: -1, dy: 0 }, // left
+      { dx: 1, dy: 0 },  // right
+    ];
+    let wallCount = 0;
+    let openDirs = [];
+    for (const dir of directions) {
+      const checkX = char.x + dir.dx * TILE_SIZE;
+      const checkY = char.y + dir.dy * TILE_SIZE;
+      const tileX = Math.floor(checkX / TILE_SIZE);
+      const tileY = Math.floor(checkY / TILE_SIZE);
+      let isWall = false;
+      if (map && map.tiles && map.tiles[tileY] && map.tiles[tileY][tileX]) {
+        const tile = map.tiles[tileY][tileX];
+        if (tile.type === 1 || tile.type === 3 || tile.type === 7) {
+          isWall = true;
+        }
+      }
+      if (isWall) wallCount++;
+      else openDirs.push(dir);
+    }
+    if (wallCount >= 2) {
+      // Stuck in a corner: try to move in a random open direction or replan
+      char.stuckCounter = (char.stuckCounter || 0) + 1;
+      if (char.stuckCounter > stuckThreshold) {
+        if (openDirs.length > 0) {
+          // Try to nudge out of the corner
+          const escapeDir = openDirs[Math.floor(Math.random() * openDirs.length)];
+          newX = char.x + escapeDir.dx * Math.max(8, Math.floor(char.width / 2));
+          newY = char.y + escapeDir.dy * Math.max(8, Math.floor(char.height / 2));
+        }
+        // Also clear path to force a replan
+        char.currentPath = null;
+        char.currentPathIndex = 0;
+        char.stuckCounter = 0;
+        return { newX, newY, moved: true, blockedByCharacterId: null };
+      }
+    }
+  }
+
   return { newX, newY, moved, blockedByCharacterId: moved ? null : finalBlockedByCharacterId };
 };
 
