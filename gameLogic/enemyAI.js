@@ -513,19 +513,45 @@ const update = (
                     if (distToActualTarget <= enemy.shootRange) {
                         if (hasLineOfSight({ x: enemy.x + enemy.width / 2, y: enemy.y + enemy.height / 2 }, { x: actualTargetEntity.x + actualTargetEntity.width / 2, y: actualTargetEntity.y + actualTargetEntity.height / 2 }, map)) {
                             
-                            let enemyShootCooldownTicks, currentBulletSpeed, currentBulletDamage, shootSoundFn, bulletMaxTravel;
-                            switch(enemy.variant) {                                case EnemyVariant.SOLDIER:
+                            let enemyShootCooldownTicks, currentBulletSpeed, bulletDamageMin, bulletDamageMax, shootSoundFn, bulletMaxTravel;
+                            switch(enemy.variant) {
+                                case EnemyVariant.SOLDIER:
                                     enemyShootCooldownTicks = ENEMY_SOLDIER_SHOOT_COOLDOWN_MS / GAME_LOOP_INTERVAL;
                                     currentBulletSpeed = ENEMY_BULLET_SPEED;
+                                    bulletDamageMin = ENEMY_BULLET_DAMAGE_MIN;
+                                    bulletDamageMax = ENEMY_BULLET_DAMAGE_MAX;
                                     shootSoundFn = () => playEnemySoldierShootSound(GUNSHOT_VOLUME * 0.9);
-                                    bulletMaxTravel = ENEMY_SOLDIER_BULLET_MAX_TRAVEL_DISTANCE; break;                                case EnemyVariant.GRENADIER:
+                                    bulletMaxTravel = ENEMY_SOLDIER_BULLET_MAX_TRAVEL_DISTANCE;
+                                    break;
+                                case EnemyVariant.GRENADIER:
                                     enemyShootCooldownTicks = ENEMY_GRENADIER_SHOOT_COOLDOWN_MS / GAME_LOOP_INTERVAL;
                                     currentBulletSpeed = ENEMY_GRENADIER_BULLET_SPEED;
+                                    bulletDamageMin = ENEMY_GRENADIER_BULLET_DAMAGE_MIN;
+                                    bulletDamageMax = ENEMY_GRENADIER_BULLET_DAMAGE_MAX;
                                     shootSoundFn = () => playEnemyHeavyShootSound(ENEMY_HEAVY_GUNSHOT_VOLUME * 0.9);
-                                    bulletMaxTravel = ENEMY_GRENADIER_BULLET_MAX_TRAVEL_DISTANCE; break;
-                                default: 
+                                    bulletMaxTravel = ENEMY_GRENADIER_BULLET_MAX_TRAVEL_DISTANCE;
+                                    break;
+                                case EnemyVariant.BOSS:
+                                    enemyShootCooldownTicks = ENEMY_BOSS_SHOOT_COOLDOWN_MS / GAME_LOOP_INTERVAL;
+                                    currentBulletSpeed = ENEMY_BULLET_SPEED;
+                                    bulletDamageMin = ENEMY_BOSS_BULLET_DAMAGE_MIN;
+                                    bulletDamageMax = ENEMY_BOSS_BULLET_DAMAGE_MAX;
+                                    shootSoundFn = () => playEnemyHeavyShootSound(ENEMY_HEAVY_GUNSHOT_VOLUME);
+                                    bulletMaxTravel = ENEMY_BOSS_BULLET_MAX_TRAVEL_DISTANCE;
+                                    break;
+                                case EnemyVariant.HV_BOSS:
+                                    enemyShootCooldownTicks = ENEMY_BOSS_SHOOT_COOLDOWN_MS / GAME_LOOP_INTERVAL;
+                                    currentBulletSpeed = ENEMY_BULLET_SPEED;
+                                    bulletDamageMin = ENEMY_HV_BOSS_BULLET_DAMAGE_MIN;
+                                    bulletDamageMax = ENEMY_HV_BOSS_BULLET_DAMAGE_MAX;
+                                    shootSoundFn = () => playEnemyHeavyShootSound(ENEMY_HEAVY_GUNSHOT_VOLUME * 1.1);
+                                    bulletMaxTravel = ENEMY_BOSS_BULLET_MAX_TRAVEL_DISTANCE;
+                                    break;
+                                default:
                                     enemyShootCooldownTicks = ENEMY_SOLDIER_SHOOT_COOLDOWN_MS / GAME_LOOP_INTERVAL;
-                                    currentBulletSpeed = ENEMY_BULLET_SPEED; currentBulletDamage = ENEMY_BULLET_DAMAGE;
+                                    currentBulletSpeed = ENEMY_BULLET_SPEED;
+                                    bulletDamageMin = ENEMY_BULLET_DAMAGE_MIN;
+                                    bulletDamageMax = ENEMY_BULLET_DAMAGE_MAX;
                                     shootSoundFn = () => playEnemySoldierShootSound(GUNSHOT_VOLUME * 0.9);
                                     bulletMaxTravel = ENEMY_SOLDIER_BULLET_MAX_TRAVEL_DISTANCE;
                             }
@@ -541,11 +567,14 @@ const update = (
                                 const bulletDx = distToPredicted > 0 ? (dxToPredicted / distToPredicted) * currentBulletSpeed : 0;
                                 const bulletDy = distToPredicted > 0 ? (dyToPredicted / distToPredicted) * currentBulletSpeed : 0;
                                 
+                                // Calculate random damage within the enemy's damage range
+                                const damage = Math.floor(Math.random() * (bulletDamageMax - bulletDamageMin + 1)) + bulletDamageMin;
+
                                 newBullets.push({
                                   id: generateUniqueId(`bullet-enemy-${enemy.id}`), type: EntityType.BULLET,
                                   x: shooterCenterPos.x - BULLET_SIZE / 2, y: shooterCenterPos.y - BULLET_SIZE / 2,
                                   width: BULLET_SIZE, height: BULLET_SIZE, color: ENEMY_BULLET_COLOR, 
-                                  dx: bulletDx, dy: bulletDy, ownerId: enemy.id, damage: currentBulletDamage,
+                                  dx: bulletDx, dy: bulletDy, ownerId: enemy.id, damage: damage,
                                   maxTravelDistance: bulletMaxTravel, traveledDistance: 0,
                                 });
                                 enemy.lastShotTime = gameTime;
@@ -604,19 +633,35 @@ const update = (
           enemy.targetPosition = { x: closestVisibleTarget.x, y: closestVisibleTarget.y };
           enemy.patrolTargetPosition = null; 
           
-          let enemyShootCooldownTicks, currentBulletSpeed, currentBulletDamage, shootSoundFn, bulletMaxTravel;
+          let enemyShootCooldownTicks, currentBulletSpeed, bulletDamageMin, bulletDamageMax, shootSoundFn, bulletMaxTravel;
             if (enemy.variant === EnemyVariant.BOSS) {
-                enemyShootCooldownTicks = ENEMY_BOSS_SHOOT_COOLDOWN_MS / GAME_LOOP_INTERVAL;                currentBulletSpeed = ENEMY_BULLET_SPEED;
+                enemyShootCooldownTicks = ENEMY_BOSS_SHOOT_COOLDOWN_MS / GAME_LOOP_INTERVAL;
+                currentBulletSpeed = ENEMY_BULLET_SPEED;
+                bulletDamageMin = ENEMY_BOSS_BULLET_DAMAGE_MIN;
+                bulletDamageMax = ENEMY_BOSS_BULLET_DAMAGE_MAX;
                 shootSoundFn = () => playEnemyHeavyShootSound(ENEMY_HEAVY_GUNSHOT_VOLUME);
                 bulletMaxTravel = ENEMY_BOSS_BULLET_MAX_TRAVEL_DISTANCE;
             } else if (enemy.variant === EnemyVariant.HV_BOSS) {
-                enemyShootCooldownTicks = ENEMY_BOSS_SHOOT_COOLDOWN_MS / GAME_LOOP_INTERVAL;                currentBulletSpeed = ENEMY_BULLET_SPEED;
+                enemyShootCooldownTicks = ENEMY_BOSS_SHOOT_COOLDOWN_MS / GAME_LOOP_INTERVAL;
+                currentBulletSpeed = ENEMY_BULLET_SPEED;
+                bulletDamageMin = ENEMY_HV_BOSS_BULLET_DAMAGE_MIN;
+                bulletDamageMax = ENEMY_HV_BOSS_BULLET_DAMAGE_MAX;
                 shootSoundFn = () => playEnemyHeavyShootSound(ENEMY_HEAVY_GUNSHOT_VOLUME * 1.1);
-                bulletMaxTravel = ENEMY_BOSS_BULLET_MAX_TRAVEL_DISTANCE;                } else { 
-                 enemyShootCooldownTicks = ENEMY_SOLDIER_SHOOT_COOLDOWN_MS / GAME_LOOP_INTERVAL;
-                 currentBulletSpeed = ENEMY_BULLET_SPEED;
-                 shootSoundFn = () => playEnemySoldierShootSound(GUNSHOT_VOLUME * 0.9);
-                 bulletMaxTravel = ENEMY_SOLDIER_BULLET_MAX_TRAVEL_DISTANCE;
+                bulletMaxTravel = ENEMY_BOSS_BULLET_MAX_TRAVEL_DISTANCE;
+            } else if (enemy.variant === EnemyVariant.GRENADIER) {
+                enemyShootCooldownTicks = ENEMY_GRENADIER_SHOOT_COOLDOWN_MS / GAME_LOOP_INTERVAL;
+                currentBulletSpeed = ENEMY_GRENADIER_BULLET_SPEED;
+                bulletDamageMin = ENEMY_GRENADIER_BULLET_DAMAGE_MIN;
+                bulletDamageMax = ENEMY_GRENADIER_BULLET_DAMAGE_MAX;
+                shootSoundFn = () => playEnemyHeavyShootSound(ENEMY_HEAVY_GUNSHOT_VOLUME * 0.9);
+                bulletMaxTravel = ENEMY_GRENADIER_BULLET_MAX_TRAVEL_DISTANCE;
+            } else { 
+                enemyShootCooldownTicks = ENEMY_SOLDIER_SHOOT_COOLDOWN_MS / GAME_LOOP_INTERVAL;
+                currentBulletSpeed = ENEMY_BULLET_SPEED;
+                bulletDamageMin = ENEMY_BULLET_DAMAGE_MIN;
+                bulletDamageMax = ENEMY_BULLET_DAMAGE_MAX;
+                shootSoundFn = () => playEnemySoldierShootSound(GUNSHOT_VOLUME * 0.9);
+                bulletMaxTravel = ENEMY_SOLDIER_BULLET_MAX_TRAVEL_DISTANCE;
             }
 
           if (minDistanceToTarget <= enemy.shootRange && gameTime - enemy.lastShotTime > enemyShootCooldownTicks) {
@@ -629,36 +674,15 @@ const update = (
 
             const bulletDx = distToPredicted > 0 ? (dxToPredicted / distToPredicted) * currentBulletSpeed : 0;
             const bulletDy = distToPredicted > 0 ? (dyToPredicted / distToPredicted) * currentBulletSpeed : 0;
-              // Calculate random damage based on enemy variant
-            let bulletDamageMin, bulletDamageMax;
-            switch(enemy.variant) {
-                case EnemyVariant.SOLDIER:
-                    bulletDamageMin = ENEMY_BULLET_DAMAGE_MIN;
-                    bulletDamageMax = ENEMY_BULLET_DAMAGE_MAX;
-                    break;
-                case EnemyVariant.GRENADIER:
-                    bulletDamageMin = ENEMY_GRENADIER_BULLET_DAMAGE_MIN;
-                    bulletDamageMax = ENEMY_GRENADIER_BULLET_DAMAGE_MAX;
-                    break;
-                case EnemyVariant.BOSS:
-                    bulletDamageMin = ENEMY_BOSS_BULLET_DAMAGE_MIN;
-                    bulletDamageMax = ENEMY_BOSS_BULLET_DAMAGE_MAX;
-                    break;
-                case EnemyVariant.HV_BOSS:
-                    bulletDamageMin = ENEMY_HV_BOSS_BULLET_DAMAGE_MIN;
-                    bulletDamageMax = ENEMY_HV_BOSS_BULLET_DAMAGE_MAX;
-                    break;
-                default:
-                    bulletDamageMin = ENEMY_BULLET_DAMAGE_MIN;
-                    bulletDamageMax = ENEMY_BULLET_DAMAGE_MAX;
-            }
-            const randomDamage = Math.floor(Math.random() * (bulletDamageMax - bulletDamageMin + 1)) + bulletDamageMin;
+            
+            // Calculate random damage within the enemy's damage range
+            const damage = Math.floor(Math.random() * (bulletDamageMax - bulletDamageMin + 1)) + bulletDamageMin;
 
             newBullets.push({
               id: generateUniqueId(`bullet-enemy-${enemy.id}`), type: EntityType.BULLET,
               x: shooterCenterPos.x - BULLET_SIZE / 2, y: shooterCenterPos.y - BULLET_SIZE / 2,
               width: BULLET_SIZE, height: BULLET_SIZE, color: ENEMY_BULLET_COLOR, 
-              dx: bulletDx, dy: bulletDy, ownerId: enemy.id, damage: randomDamage,
+              dx: bulletDx, dy: bulletDy, ownerId: enemy.id, damage: damage,
               maxTravelDistance: bulletMaxTravel, traveledDistance: 0,
             });
             enemy.lastShotTime = gameTime;
