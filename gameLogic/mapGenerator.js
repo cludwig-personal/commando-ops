@@ -1052,7 +1052,7 @@ export const generateMap = (widthTiles, heightTiles, tileSize, chosenEnvironment
     for (let i = 0; i < numTrails; i++) {
         let trailStartX, trailStartY, trailEndX, trailEndY;
         const edge = Math.floor(Math.random() * 4);
-        const trailThickness = Math.random() < 0.7 ? 1 : 2;
+        const trailThickness = Math.random() < 0.7 ? 2 : 3;
         if (edge === 0) { 
             trailStartX = Math.floor(Math.random() * widthTiles); trailStartY = 0;
             trailEndX = Math.floor(Math.random() * widthTiles); trailEndY = heightTiles -1;
