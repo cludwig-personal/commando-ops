@@ -2,7 +2,7 @@
 import { TileType, EnemyVariant, FormationShape } from './types.js';
 console.log('[constants.js] Module loaded successfully.');
 
-export const GAME_VERSION = '0.0.18'; // Update this as needed
+export const GAME_VERSION = '0.0.19'; // Update this as needed
 
 export const TILE_SIZE = 14;
 export const DEFAULT_TILE_SIZE = TILE_SIZE; 
@@ -105,7 +105,7 @@ export const ENEMY_BULLET_DAMAGE_MAX = 5;
 export const ENEMY_BULLET_COLOR = '#EF4444'; 
 export const ENEMY_DETECTION_RADIUS = TILE_SIZE * 27;        // Increased by 20% from 22
 export const ENEMY_SHOOT_RANGE = TILE_SIZE * 18;            // Increased by 20% from 15
-export const ENEMY_SOLDIER_SHOOT_COOLDOWN_MS = 1260; 
+export const ENEMY_SOLDIER_SHOOT_COOLDOWN_MS = 1700; 
 
 // Grenadier Specific Stats
 export const ENEMY_GRENADIER_SHOOT_RANGE = TILE_SIZE * 12;   // Increased by 20% from 10
@@ -116,7 +116,7 @@ export const ENEMY_GRENADIER_BULLET_DAMAGE_MAX = 10;
 
 // Boss Specific Stats (for HVT Boss and Generic non-squad Bosses)
 export const ENEMY_BOSS_SHOOT_RANGE = TILE_SIZE * 24;       // Increased by 20% from 20
-export const ENEMY_BOSS_SHOOT_COOLDOWN_MS = 1200; 
+export const ENEMY_BOSS_SHOOT_COOLDOWN_MS = 2000; 
 export const ENEMY_BOSS_BULLET_DAMAGE_MIN = 3;
 export const ENEMY_BOSS_BULLET_DAMAGE_MAX = 6;
 
