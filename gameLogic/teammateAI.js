@@ -370,18 +370,68 @@ const handleDefendOrder = (
     gameTime,
     TILE_SIZE
 ) => {
+    // Filter out dead teammates first
+    const activeTeammates = teammates.filter(tm => tm.health > 0);
+    
+    const findWalkablePosition = (baseX, baseY, searchRadius = 2) => {
+        // First check the exact position
+        const exactPosResult = isPositionWalkable(
+            { x: baseX, y: baseY }, 
+            TEAMMATE_SIZE, 
+            TEAMMATE_SIZE, 
+            map,
+            undefined, // characterIdToIgnore
+            [] // empty array for allCharacters since we only care about terrain
+        );
+        
+        if (exactPosResult.isWalkable) {
+            return { x: baseX, y: baseY };
+        }
+
+        // If not walkable, spiral outward looking for a walkable spot
+        for (let r = 1; r <= searchRadius * TILE_SIZE; r++) {
+            for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+                const testX = baseX + Math.cos(angle) * r;
+                const testY = baseY + Math.sin(angle) * r;
+                const testResult = isPositionWalkable(
+                    { x: testX, y: testY }, 
+                    TEAMMATE_SIZE, 
+                    TEAMMATE_SIZE, 
+                    map,
+                    undefined, // characterIdToIgnore
+                    [] // empty array for allCharacters since we only care about terrain
+                );
+                if (testResult.isWalkable) {
+                    return { x: testX, y: testY };
+                }
+            }
+        }
+        // If no walkable position found, return the original position and let the AI pathfinding handle it
+        return { x: baseX, y: baseY };
+    };
+
     const updatedTeammates = teammates.map(tm => {
         if (tm.health <= 0) return tm;
-        // Pick a random spot within the radius
-        const angle = Math.random() * 2 * Math.PI;
-        const dist = Math.random() * radiusTiles * TILE_SIZE;
-        const tx = defendPosition.x + Math.cos(angle) * dist;
-        const ty = defendPosition.y + Math.sin(angle) * dist;
+
+        // Calculate the index of this teammate among active teammates
+        const activeIndex = activeTeammates.findIndex(t => t.id === tm.id);
+        
+        // Calculate the angle for this teammate to be evenly spaced around the circle
+        const angle = (activeIndex * (2 * Math.PI)) / activeTeammates.length;
+        const dist = radiusTiles * TILE_SIZE; // Use full radius for perimeter placement
+        
+        // Calculate initial position on the perimeter
+        const initialX = defendPosition.x + Math.cos(angle) * dist;
+        const initialY = defendPosition.y + Math.sin(angle) * dist;
+
+        // Find a walkable position near the calculated point
+        const walkablePos = findWalkablePosition(initialX, initialY);
+
         return {
             ...tm,
-            targetPosition: { x: tx, y: ty },
+            targetPosition: walkablePos,
             isHoldingPosition: true,
-            holdPositionTarget: { x: tx, y: ty },
+            holdPositionTarget: walkablePos,
             commandedMoveTime: gameTime,
             currentPath: null,
             currentPathIndex: 0,
@@ -395,10 +445,12 @@ const handleDefendOrder = (
     return updatedTeammates;
 };
 
-export const updateTeammatesAI = {
+const updateTeammatesAI = {
     update,
     handleRecall,
     handleMoveOrder,
     handleDefendOrder,
     triggerEvasiveManuever: triggerAIEvasiveManeuver,
 };
+
+export { updateTeammatesAI };
