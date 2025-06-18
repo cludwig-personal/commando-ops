@@ -1,0 +1,6 @@
+{
+  "name": "8-Bit Commando Ops Canvas",
+  "description": "A top-down 8-bit style military shooter game with dynamic objectives and AI teammates. Player navigates a procedurally generated map, commands teammates, and engages various enemy types. Features save/load functionality.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}

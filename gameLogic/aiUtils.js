@@ -1,0 +1,285 @@
+import { EntityType } from '../types.js';
+import { isPositionWalkable, findPath, smoothPath } from './mapGenerator.js';
+import { 
+    AI_TARGET_ARRIVAL_THRESHOLD, 
+    TEAMMATE_SIZE, 
+    STUCK_TIMEOUT_TICKS,
+    AI_EVASIVE_MANEUVER_COOLDOWN_MS,
+    GAME_LOOP_INTERVAL,
+    AI_EVASIVE_DODGE_CHANCE,
+    AI_EVASIVE_STRAFE_DISTANCE
+} from '../constants.js';
+
+export const processAIMovement = (
+  char,
+  intendedTargetPos,
+  map,
+  allCharacters,
+  newGameTime,
+  TILE_SIZE
+) => {
+  const originalX = char.x; 
+  const originalY = char.y;
+  let newX = char.x;
+  let newY = char.y;
+  let moved = false;
+  let finalBlockedByCharacterId = null;
+
+  if (char.health <= 0) {
+    return { newX, newY, moved, blockedByCharacterId: null };
+  }
+
+  let currentActualTarget = intendedTargetPos;
+
+  if (!currentActualTarget) { 
+      char.currentPath = null;
+      char.currentPathIndex = 0;
+      return { newX: char.x, newY: char.y, moved: false, blockedByCharacterId: null };
+  }
+
+
+  if (!char.currentPath || char.currentPath.length === 0 || char.currentPathIndex >= char.currentPath.length) {
+    const distToIntended = Math.sqrt(Math.pow(intendedTargetPos.x - char.x, 2) + Math.pow(intendedTargetPos.y - char.y, 2));
+    if (distToIntended > AI_TARGET_ARRIVAL_THRESHOLD) {
+        const rawPath = findPath({ x: char.x + char.width / 2, y: char.y + char.height / 2 }, intendedTargetPos, map, TILE_SIZE, allCharacters);
+        if (rawPath && rawPath.length > 0) {
+          char.currentPath = smoothPath(rawPath, map);
+          char.currentPathIndex = 0;
+        } else {
+          char.currentPath = null;
+          char.currentPathIndex = 0;
+        }
+    } else {
+        char.currentPath = null;
+        char.currentPathIndex = 0;
+    }
+  }
+  
+  if (char.currentPath && char.currentPathIndex < char.currentPath.length) {
+    const pathNodeIsCenter = char.currentPath[char.currentPathIndex];
+    const pathNodeTopLeft = { x: pathNodeIsCenter.x - char.width / 2, y: pathNodeIsCenter.y - char.height / 2 };
+    
+    currentActualTarget = pathNodeTopLeft;
+
+    const distToPathNodeTopLeft = Math.sqrt(Math.pow(pathNodeTopLeft.x - char.x, 2) + Math.pow(pathNodeTopLeft.y - char.y, 2));
+
+    if (distToPathNodeTopLeft < AI_TARGET_ARRIVAL_THRESHOLD * 1.2) {
+      char.currentPathIndex++;
+      if (char.currentPathIndex >= char.currentPath.length) {
+        char.currentPath = null;
+        char.currentPathIndex = 0;
+        currentActualTarget = intendedTargetPos;
+      } else {
+        const nextNodeCenter = char.currentPath[char.currentPathIndex];
+        currentActualTarget = { x: nextNodeCenter.x - char.width / 2, y: nextNodeCenter.y - char.height / 2 };
+      }
+    }
+  }
+
+  const dxToCurrentActual = currentActualTarget.x - char.x;
+  const dyToCurrentActual = currentActualTarget.y - char.y;
+  const distToCurrentActual = Math.sqrt(dxToCurrentActual * dxToCurrentActual + dyToCurrentActual * dyToCurrentActual);
+
+  if (distToCurrentActual <= AI_TARGET_ARRIVAL_THRESHOLD) {
+    // Complete the move naturally by moving the remaining distance
+    if (distToCurrentActual > 0.001) {
+      const moveRatio = Math.min(1, char.speed / distToCurrentActual);
+      newX = char.x + dxToCurrentActual * moveRatio;
+      newY = char.y + dyToCurrentActual * moveRatio;
+      moved = true;
+    }
+  } else {
+    let moveXAmount;
+    let moveYAmount;
+
+    if (distToCurrentActual < char.speed) {
+      moveXAmount = dxToCurrentActual;
+      moveYAmount = dyToCurrentActual;
+    } else {
+      moveXAmount = (dxToCurrentActual / distToCurrentActual) * char.speed;
+      moveYAmount = (dyToCurrentActual / distToCurrentActual) * char.speed;
+    }
+
+    const potentialNewX = char.x + moveXAmount;
+    const potentialNewY = char.y + moveYAmount;
+    
+    let currentProvisionalX = originalX;
+    let currentProvisionalY = originalY;
+    const otherEntities = allCharacters.filter(c => c.id !== char.id && (c.health === undefined || c.health > 0) && (c.type !== EntityType.INTEL_ITEM || !c.isCollected));
+
+    const xCheckResult = isPositionWalkable({ x: potentialNewX, y: originalY }, char.width, char.height, map, char.id, otherEntities);
+    if (xCheckResult.isWalkable) {
+      currentProvisionalX = potentialNewX;
+    } else {
+        if (xCheckResult.blockedByCharacterId) finalBlockedByCharacterId = xCheckResult.blockedByCharacterId;
+    }
+
+    const yCheckResult = isPositionWalkable({ x: currentProvisionalX, y: potentialNewY }, char.width, char.height, map, char.id, otherEntities);
+    if (yCheckResult.isWalkable) {
+      currentProvisionalY = potentialNewY;
+    } else {
+      if (yCheckResult.blockedByCharacterId) finalBlockedByCharacterId = yCheckResult.blockedByCharacterId;
+      if (xCheckResult.isWalkable && currentProvisionalX === potentialNewX) {
+        currentProvisionalY = originalY; 
+      } else if (!xCheckResult.isWalkable) { 
+        currentProvisionalX = originalX;
+      }
+    }
+    
+    if (currentProvisionalX === originalX && currentProvisionalY === originalY && (xCheckResult.blockedByCharacterId || yCheckResult.blockedByCharacterId)) {
+        const yFirstCheck = isPositionWalkable({ x: originalX, y: potentialNewY }, char.width, char.height, map, char.id, otherEntities);
+        if (yFirstCheck.isWalkable) {
+            const xAfterYCheck = isPositionWalkable({ x: potentialNewX, y: potentialNewY }, char.width, char.height, map, char.id, otherEntities);
+            if(xAfterYCheck.isWalkable) {
+                currentProvisionalX = potentialNewX;
+                currentProvisionalY = potentialNewY;
+            } else { 
+                currentProvisionalX = originalX;
+                currentProvisionalY = potentialNewY;
+                if(xAfterYCheck.blockedByCharacterId) finalBlockedByCharacterId = xAfterYCheck.blockedByCharacterId;
+            }
+        } else {
+             if(yFirstCheck.blockedByCharacterId) finalBlockedByCharacterId = yFirstCheck.blockedByCharacterId;
+        }
+    }
+
+    newX = currentProvisionalX;
+    newY = currentProvisionalY;
+    moved = (Math.abs(originalX - newX) > 0.001 || Math.abs(originalY - newY) > 0.001);
+
+    if (moved) {
+      const distToCurrentActualAfterMove = Math.sqrt(Math.pow(currentActualTarget.x - newX, 2) + Math.pow(currentActualTarget.y - newY, 2));
+      if (distToCurrentActualAfterMove <= AI_TARGET_ARRIVAL_THRESHOLD) {
+        // Complete the move naturally by moving the remaining distance
+        if (distToCurrentActualAfterMove > 0.001) {
+          const moveRatio = Math.min(1, char.speed / distToCurrentActualAfterMove);
+          newX = char.x + (currentActualTarget.x - char.x) * moveRatio;
+          newY = char.y + (currentActualTarget.y - char.y) * moveRatio;
+        }
+      }
+    } else if (distToCurrentActual > AI_TARGET_ARRIVAL_THRESHOLD && !finalBlockedByCharacterId) {
+        const combinedCheck = isPositionWalkable({ x: potentialNewX, y: potentialNewY }, char.width, char.height, map, char.id, otherEntities);
+        if (!combinedCheck.isWalkable && combinedCheck.blockedByCharacterId) {
+            finalBlockedByCharacterId = combinedCheck.blockedByCharacterId;
+        }
+    }
+  }
+  
+  if (moved) {
+    const actualMoveDx = newX - originalX;
+    const actualMoveDy = newY - originalY;
+    const actualMoveMagnitude = Math.sqrt(actualMoveDx * actualMoveDx + actualMoveDy * actualMoveDy);
+    if (actualMoveMagnitude > 0.01) { 
+        char.lastMovementVector = { 
+            x: actualMoveDx / actualMoveMagnitude,
+            y: actualMoveDy / actualMoveMagnitude,
+        };
+    } else {
+        char.lastMovementVector = { x: 0, y: 0 };
+    }
+    char.lastMovedTime = newGameTime;
+  } else {
+      char.lastMovementVector = { x: 0, y: 0 };
+  }
+  
+  if (!moved && finalBlockedByCharacterId && char.squadId) {
+    const blocker = allCharacters.find(c => c.id === finalBlockedByCharacterId);
+    if (blocker && blocker.squadId && blocker.squadId === char.squadId) {
+        // If blocked by a squad member, try to find a new path after a short wait
+        char.stuckCounter = Math.min(char.stuckCounter + 1, STUCK_TIMEOUT_TICKS);
+        if (char.stuckCounter > STUCK_TIMEOUT_TICKS / 4) { // More aggressive about finding new paths
+            char.currentPath = null;
+            char.currentPathIndex = 0;
+        }
+    }
+  } else if (!moved && !finalBlockedByCharacterId && char.stuckCounter > STUCK_TIMEOUT_TICKS / 4 && char.type !== EntityType.PLAYER) {
+    // If stuck and not blocked by a character, try to find a new path
+    char.currentPath = null;
+    char.currentPathIndex = 0;
+    char.stuckCounter = 0;
+  }
+
+  const mapPixelWidth = map.widthTiles * TILE_SIZE;
+  const mapPixelHeight = map.heightTiles * TILE_SIZE;
+
+  newX = Math.max(0, Math.min(newX, mapPixelWidth - char.width));
+  newY = Math.max(0, Math.min(newY, mapPixelHeight - char.height));
+
+  return { newX, newY, moved, blockedByCharacterId: moved ? null : finalBlockedByCharacterId };
+};
+
+export const triggerAIEvasiveManeuver = (
+    aiChar,
+    bullet,
+    newGameTime
+) => {
+    if (newGameTime > aiChar.lastEvasiveManeuverTime + (AI_EVASIVE_MANEUVER_COOLDOWN_MS / GAME_LOOP_INTERVAL)) {
+        if (Math.random() < AI_EVASIVE_DODGE_CHANCE) {
+            aiChar.isPerformingEvasiveManeuver = true;
+            aiChar.lastEvasiveManeuverTime = newGameTime;
+            
+            if (aiChar.type === EntityType.TEAMMATE) {
+                const tm = aiChar;
+                tm.effectiveFormationTarget = null; 
+                if (!tm.isHoldingPosition) { 
+                    tm.preEvasionTarget = tm.targetPosition;
+                    tm.preEvasionWaypointQueue = [...tm.waypointQueue];
+                    tm.preEvasionCommandedMoveTime = tm.commandedMoveTime;
+                } else { 
+                    tm.preEvasionTarget = tm.holdPositionTarget; 
+                    tm.preEvasionWaypointQueue = null; 
+                    tm.preEvasionCommandedMoveTime = null; 
+                }
+            } else { 
+                 aiChar.preEvasionTarget = aiChar.targetPosition;
+            }
+
+            const bulletSpeed = Math.sqrt(bullet.dx*bullet.dx + bullet.dy*bullet.dy);
+            const normDx = bulletSpeed > 0 ? bullet.dx / bulletSpeed : 0;
+            const normDy = bulletSpeed > 0 ? bullet.dy / bulletSpeed : 0;
+            
+            const evadeDirX = Math.random() < 0.5 ? -normDy : normDy; 
+            const evadeDirY = Math.random() < 0.5 ? normDx : -normDx; 
+
+            aiChar.evasiveManeuverTarget = {
+                x: aiChar.x + evadeDirX * AI_EVASIVE_STRAFE_DISTANCE,
+                y: aiChar.y + evadeDirY * AI_EVASIVE_STRAFE_DISTANCE
+            };
+            aiChar.currentPath = null; 
+            if(aiChar.type === EntityType.TEAMMATE) {
+                aiChar.waypointQueue = []; 
+            }
+        }
+    }
+    return aiChar;
+};
+
+export function predictTargetPosition(shooterCenter, target, bulletSpeed, iterations = 2) {
+    const targetCenter = { x: target.x + target.width / 2, y: target.y + target.height / 2 };
+
+    if (!target.lastMovementVector || (target.lastMovementVector.x === 0 && target.lastMovementVector.y === 0) || !target.speed) {
+        return targetCenter; // Target is stationary or has no movement data, aim at current center
+    }
+
+    let predictedPos = { ...targetCenter };
+    let timeToIntercept = 0;
+
+    for (let i = 0; i < iterations; i++) {
+        const distToPredicted = Math.sqrt(Math.pow(predictedPos.x - shooterCenter.x, 2) + Math.pow(predictedPos.y - shooterCenter.y, 2));
+        
+        if (bulletSpeed <= 0) { // Avoid division by zero or nonsensical speeds
+             return targetCenter;
+        }
+        timeToIntercept = distToPredicted / bulletSpeed;
+
+        const targetVelX = target.lastMovementVector.x * target.speed;
+        const targetVelY = target.lastMovementVector.y * target.speed;
+        
+        predictedPos = {
+            x: targetCenter.x + targetVelX * timeToIntercept,
+            y: targetCenter.y + targetVelY * timeToIntercept,
+        };
+    }
+
+    return predictedPos;
+}
