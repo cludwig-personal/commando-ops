@@ -428,39 +428,38 @@ export const createInitialObjectives = (enemies, intelItems) => {
   console.log('[initialization.js] createInitialObjectives: START');
   const objectives = [];
 
+  // Find HV_BOSS (commander) and a BOSS (HVT) that is not the HV_BOSS
   const hvtBoss = enemies.find(e => e.variant === EnemyVariant.HV_BOSS && !e.squadId);
-  const hvtPotential = enemies.find(e => e.variant === EnemyVariant.BOSS && !e.squadId);
-  let hvtObject;
+  // Ensure HVT is not the same as HV_BOSS
+  const hvtPotential = enemies.find(e => e.variant === EnemyVariant.BOSS && !e.squadId && (!hvtBoss || e.id !== hvtBoss.id));
 
   if (hvtBoss) {
     hvtBoss.isHVT = true;
     hvtBoss.color = HVT_COLOR;
     objectives.push({
-      id: 'obj-eliminate-hvt-boss',
-      type: ObjectiveType.ELIMINATE_TARGET,
-      description: `Eliminate the HVT Commander`,
+      id: 'obj-eliminate-hv-boss',
+      type: ObjectiveType.ELIMINATE_HV_BOSS,
+      description: 'Eliminate Enemy Commander',
       isCompleted: false,
       targetEntityId: hvtBoss.id,
     });
-    hvtObject = hvtBoss;
-  } else if (hvtPotential) {
+  } else {
+    console.error("HV_BOSS (Commander) not spawned! Commander objective will not be created.");
+  }
+
+  if (hvtPotential) {
     hvtPotential.isHVT = true;
     hvtPotential.color = HVT_COLOR;
     objectives.push({
-        id: 'obj-eliminate-hvt-boss',
-        type: ObjectiveType.ELIMINATE_TARGET,
-        description: 'Eliminate the HVT',
-        isCompleted: false,
-        targetEntityId: hvtPotential.id,
+      id: 'obj-eliminate-hvt-boss',
+      type: ObjectiveType.ELIMINATE_TARGET,
+      description: 'Eliminate the HVT',
+      isCompleted: false,
+      targetEntityId: hvtPotential.id,
     });
-    hvtObject = hvtPotential;
+  } else {
+    console.error("HVT (Boss) not spawned! HVT objective will not be created.");
   }
-
-  objectives.push({
-    id: 'obj-eliminate-hv-boss', type: ObjectiveType.ELIMINATE_HV_BOSS,
-    description: 'Eliminate Enemy Commander', isCompleted: false,
-    targetEntityId: hvtBoss ? hvtBoss.id : hvtPotential.id,
-  });
 
   objectives.push({
     id: 'obj-intel',
