@@ -382,7 +382,6 @@ export const createInitialEnemies = (map, playerAndTeammates, intelItems) => {
       console.error("[initialization.js] FAILED to spawn HV_BOSS (Commander).");
   }
 
-
   // 2. Spawn one regular BOSS (to be potentially marked as HVT later) - Non-squad
   const hvtPotentialBoss = spawnSingleEnemy(EnemyVariant.BOSS, null, map, currentAllCharactersToAvoid, false); 
   if (hvtPotentialBoss) {
@@ -405,7 +404,7 @@ export const createInitialEnemies = (map, playerAndTeammates, intelItems) => {
     }
   }
 
-  // 3. Spawn ONE guardian squad for each sector containing an intel item.
+  // 4. Spawn ONE guardian squad for each sector containing an intel item.
   uniqueIntelSectors.forEach(sectorId => {
     const sector = sectors.find(s => s.id === sectorId);
     if (sector) {
@@ -418,6 +417,21 @@ export const createInitialEnemies = (map, playerAndTeammates, intelItems) => {
       }
     }
   });
+  
+  // 5. Spawn additional squads up to MAX_ENEMY_SQUADS (excluding guardian squads)
+  const squadsToSpawn = Math.max(0, MAX_ENEMY_SQUADS - enemySquads.length);
+  for (let i = 0; i < squadsToSpawn; i++) {
+    // Pick a random sector that is not already used for a guardian squad
+    const availableSectors = sectors.filter(s => !enemySquads.some(sq => sq.sectorId === s.id));
+    const sector = availableSectors.length > 0 ? availableSectors[Math.floor(Math.random() * availableSectors.length)] : sectors[Math.floor(Math.random() * sectors.length)];
+    const result = spawnSquadInSector(sector, map, currentAllCharactersToAvoid, false);
+    if (result) {
+      const { newSquad, squadMembers } = result;
+      enemySquads.push(newSquad);
+      enemies.push(...squadMembers);
+      currentAllCharactersToAvoid.push(...squadMembers);
+    }
+  }
   
   console.log(`[initialization.js] createInitialEnemies: END. Created ${enemies.length} total initial enemies in ${enemySquads.length} guardian squads.`);
   return { enemies, enemySquads };
