@@ -2,7 +2,7 @@
 import { TileType, EnemyVariant, FormationShape } from './types.js';
 console.log('[constants.js] Module loaded successfully.');
 
-export const GAME_VERSION = '0.0.19'; // Update this as needed
+export const GAME_VERSION = '0.0.20'; // Update this as needed
 
 export const TILE_SIZE = 14;
 export const DEFAULT_TILE_SIZE = TILE_SIZE; 

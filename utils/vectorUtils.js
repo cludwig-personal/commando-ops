@@ -32,3 +32,28 @@ export const getAverageMovementVector = (
 
   return { x: avgX / magnitude, y: avgY / magnitude };
 };
+
+/**
+ * Checks if a point (x, y) is inside the viewport rectangle.
+ * @param {number} x - X coordinate of the point.
+ * @param {number} y - Y coordinate of the point.
+ * @param {{x: number, y: number, width: number, height: number}} viewport - The viewport rectangle.
+ * @returns {boolean}
+ */
+export function isPositionInViewport(x, y, viewport) {
+    return (
+        x >= viewport.x &&
+        x <= viewport.x + viewport.width &&
+        y >= viewport.y &&
+        y <= viewport.y + viewport.height
+    );
+}
+
+export function getCurrentViewport(camera, canvas) {
+    return {
+        x: camera.x,
+        y: camera.y,
+        width: canvas.width,
+        height: canvas.height
+    };
+}

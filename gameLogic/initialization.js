@@ -14,6 +14,7 @@ import {
 } from '../constants.js';
 import { generateMap, isPositionWalkable } from './mapGenerator.js';
 import { getSectors } from './sectorUtils.js';
+import { isPositionInViewport } from '../utils/vectorUtils.js';
 
 
 export const createInitialPlayer = (map) => {
@@ -203,6 +204,18 @@ export function spawnSingleEnemy(variant, squadId, map, charactersToAvoid, isHVT
     const playerSpawnCenterY = Math.floor(map.heightTiles / 2) * map.tileSize;
     const minSpawnDistFromPlayerCenter = map.tileSize * 15;
 
+    // Get viewport info if available (from global or map)
+    let viewport = null;
+    if (typeof window !== 'undefined' && window.camera && window.canvas) {
+        viewport = {
+            x: window.camera.x,
+            y: window.camera.y,
+            width: window.canvas.width,
+            height: window.canvas.height
+        };
+    } else if (map.viewport) {
+        viewport = map.viewport;
+    }
 
     for (let attempt = 0; attempt < maxSpawnAttempts; attempt++) {
         let randTileX = Math.floor(Math.random() * (map.widthTiles - 2)) + 1;
@@ -214,6 +227,9 @@ export function spawnSingleEnemy(variant, squadId, map, charactersToAvoid, isHVT
         const potentialX = randTileX * map.tileSize + (map.tileSize - ENEMY_SIZE) / 2;
         const potentialY = randTileY * map.tileSize + (map.tileSize - ENEMY_SIZE) / 2;
         
+        // Prevent spawning inside the viewport
+        if (viewport && isPositionInViewport(potentialX, potentialY, viewport)) continue;
+
         const distToPlayerSpawn = Math.sqrt(Math.pow(potentialX - playerSpawnCenterX, 2) + Math.pow(potentialY - playerSpawnCenterY, 2));
         if (distToPlayerSpawn <= minSpawnDistFromPlayerCenter) continue;
 
@@ -269,6 +285,19 @@ export const spawnSquadInSector = (sector, map, charactersToAvoid, isObjectiveGu
       x: tileX * map.tileSize + map.tileSize / 2,
       y: tileY * map.tileSize + map.tileSize / 2,
     };
+    // Prevent squad focal point from being inside the viewport
+    let viewport = null;
+    if (typeof window !== 'undefined' && window.camera && window.canvas) {
+        viewport = {
+            x: window.camera.x,
+            y: window.camera.y,
+            width: window.canvas.width,
+            height: window.canvas.height
+        };
+    } else if (map.viewport) {
+        viewport = map.viewport;
+    }
+    if (viewport && isPositionInViewport(potentialFocalPoint.x, potentialFocalPoint.y, viewport)) continue;
     if (isPositionWalkable(potentialFocalPoint, ENEMY_SIZE, ENEMY_SIZE, map, `squad-${squadId}-fp`, charactersToAvoid).isWalkable) {
       focalPoint = potentialFocalPoint;
       focalPointFound = true;

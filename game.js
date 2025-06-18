@@ -9,6 +9,7 @@ import { updateBulletsLogic } from './gameLogic/bulletLogic.js';
 import { updateObjectiveLogic } from './gameLogic/objectiveLogic.js';
 import { getAudioContext, playObjectiveCompleteSound, playIntelCollectedSound } from './utils/audioUtils.js';
 import { getSectors } from './gameLogic/sectorUtils.js';
+import { getCurrentViewport } from './utils/vectorUtils.js';
 
 const canvas = document.getElementById('gameCanvas');
 if (!canvas) {
@@ -531,6 +532,10 @@ function updateGame() {
             gameState.defendOrder = null;
         }
     }
+
+    // Make viewport available for all logic this tick
+    const viewport = getCurrentViewport(camera, canvas);
+    gameState.viewport = viewport;
 }
 
 function updateEnemyPopulation() {
