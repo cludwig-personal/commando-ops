@@ -362,9 +362,43 @@ const handleMoveOrder = (
     return updatedTeammates;
 };
 
+const handleDefendOrder = (
+    teammates,
+    defendPosition,
+    radiusTiles,
+    map,
+    gameTime,
+    TILE_SIZE
+) => {
+    const updatedTeammates = teammates.map(tm => {
+        if (tm.health <= 0) return tm;
+        // Pick a random spot within the radius
+        const angle = Math.random() * 2 * Math.PI;
+        const dist = Math.random() * radiusTiles * TILE_SIZE;
+        const tx = defendPosition.x + Math.cos(angle) * dist;
+        const ty = defendPosition.y + Math.sin(angle) * dist;
+        return {
+            ...tm,
+            targetPosition: { x: tx, y: ty },
+            isHoldingPosition: true,
+            holdPositionTarget: { x: tx, y: ty },
+            commandedMoveTime: gameTime,
+            currentPath: null,
+            currentPathIndex: 0,
+            waypointQueue: [],
+            effectiveFormationTarget: null,
+            targetEntityId: null,
+            isPerformingEvasiveManeuver: false,
+            evasiveManeuverTarget: null
+        };
+    });
+    return updatedTeammates;
+};
+
 export const updateTeammatesAI = {
     update,
     handleRecall,
     handleMoveOrder,
+    handleDefendOrder,
     triggerEvasiveManuever: triggerAIEvasiveManeuver,
 };
