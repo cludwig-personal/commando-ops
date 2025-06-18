@@ -997,7 +997,7 @@ export const generateMap = (widthTiles, heightTiles, tileSize, chosenEnvironment
     }
 
     // 3. Add tree patches
-    const numTreePatches = Math.floor(Math.random() * 15) + 20;
+    const numTreePatches = Math.floor(Math.random() * 15) + 10;
     for (let i = 0; i < numTreePatches; i++) {
         const patchCenterX = Math.floor(Math.random() * widthTiles);
         const patchCenterY = Math.floor(Math.random() * heightTiles);
@@ -1016,7 +1016,7 @@ export const generateMap = (widthTiles, heightTiles, tileSize, chosenEnvironment
     }
 
     // 4. Add scattered trees
-    const numScatteredTrees = Math.floor(Math.random() * 300) + 400;
+    const numScatteredTrees = Math.floor(Math.random() * 300) + 200;
     for (let i = 0; i < numScatteredTrees; i++) {
         const treeX = Math.floor(Math.random() * (widthTiles - 2)) + 1;
         const treeY = Math.floor(Math.random() * (heightTiles - 2)) + 1;
@@ -1140,7 +1140,7 @@ export const generateMap = (widthTiles, heightTiles, tileSize, chosenEnvironment
     }
 
     // 6. Place Tree Patches, respecting trails
-    const numTreePatches = Math.floor(Math.random() * 40) + 60;
+    const numTreePatches = Math.floor(Math.random() * 40) + 20;
     for (let i = 0; i < numTreePatches; i++) {
         const patchCenterX = Math.floor(Math.random() * widthTiles);
         const patchCenterY = Math.floor(Math.random() * heightTiles);
@@ -1170,7 +1170,7 @@ export const generateMap = (widthTiles, heightTiles, tileSize, chosenEnvironment
     }
 
     // 8. Place Structures
-    const numStructures = Math.floor(Math.random() * 3) + 2;
+    const numStructures = Math.floor(Math.random() * 3) + 3;
     for (let i = 0; i < numStructures; i++) {
         const structX = Math.floor(Math.random() * (widthTiles - 15)) + 7;
         const structY = Math.floor(Math.random() * (heightTiles - 15)) + 7;

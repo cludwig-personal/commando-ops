@@ -2,7 +2,7 @@
 import { TileType, EnemyVariant, FormationShape } from './types.js';
 console.log('[constants.js] Module loaded successfully.');
 
-export const GAME_VERSION = '0.0.23'; // Update this as needed
+export const GAME_VERSION = '0.0.29'; // Update this as needed
 
 export const TILE_SIZE = 14;
 export const DEFAULT_TILE_SIZE = TILE_SIZE; 
@@ -87,13 +87,13 @@ export const ENEMY_HEALTH_BOSS = 100; // For non-squad Boss (HVT and Generic)
 export const ENEMY_HEALTH_GRENADIER = 80;
 export const ENEMY_HEALTH_HV_BOSS = 350; // For non-squad Commander
 
-export const HVT_COLOR = '#A78BFA'; // More distinct purple for HVT (was #C4B5FD)
+export const HVT_COLOR = '#7C3AED'; // Dark purple for HVT (distinct from commander)
 
 export const ENEMY_COLORS = {
   [EnemyVariant.SOLDIER]: '#991B1B',    // Dark red
   [EnemyVariant.GRENADIER]: '#E53E3E',  // Brighter red for distinction
   [EnemyVariant.BOSS]: '#FACC15',       // Yellow for generic non-HVT Boss (was #DC2626)
-  [EnemyVariant.HV_BOSS]: '#5B21B6',    // Dark purple (Commander)
+  [EnemyVariant.HV_BOSS]: '#C4B5FD',    // Light purple for Commander
 };
 
 export const BULLET_SIZE = TILE_SIZE * 0.20;
@@ -184,12 +184,12 @@ export const SQUAD_POST_COMBAT_REGROUP_GRACE_PERIOD_TICKS = 200; // Approx 10 se
 export const MAX_GENERIC_BOSSES = 2; // New: Max non-HVT yellow bosses
 
 // Dynamic Spawning Constants
-export const ACTIVE_SQUAD_LIMIT = 3; // Max number of dynamically spawned squads active at once
+export const ACTIVE_SQUAD_LIMIT = 0; // Disable dynamic squad spawning
 export const SQUAD_SPAWN_RADIUS_TILES = 70; // Spawn squads just outside this radius
 export const SQUAD_DESPAWN_RADIUS_TILES = 90; // Despawn squads beyond this radius
 export const SPAWN_CHECK_INTERVAL_TICKS = 200; // Check every 5 seconds (100 * 50ms)
 
-export const RESPAWN_DELAY_TICKS = 400; // General respawn delay, used for squads and generic bosses
+export const RESPAWN_DELAY_TICKS = Infinity; // Prevent respawn of squads and generic bosses
 
 export const STUCK_TIMEOUT_TICKS = 120; 
 export const STUCK_RECOVERY_PATROL_RADIUS = TILE_SIZE * 10;
