@@ -39,9 +39,10 @@ resizeCanvas(); // Initial resize
 
 // --- Game State ---
 let gameState = createInitialGameState();
+let currentScreen = 'environmentSelection';
 let camera = { x: 0, y: 0 };
-let currentScreen = 'environmentSelection'; // environmentSelection, loading, game, pause, gameOver, gameWon
-
+// Add defend order state
+let defendOrder = null;
 // --- Helper Functions ---
 function createInitialGameState() {
     return {
@@ -68,6 +69,8 @@ function createInitialGameState() {
         lastSpawnCheckTick: 0,
         isHudVisible: true,
         lastHKeyPress: false,
+        // Add defend order state to gameState for persistence
+        defendOrder: null,
     };
 }
 
@@ -100,11 +103,10 @@ async function resetAndStartGame(environmentType) {
             return;
         }
 
-        gameState.sectors = getSectors();
-        console.log('[game.js] resetAndStartGame: initializeGameWorld COMPLETED SUCCESSFULLY.');
+        gameState.sectors = getSectors();        console.log('[game.js] resetAndStartGame: initializeGameWorld COMPLETED SUCCESSFULLY.');
         currentScreen = 'game';
         if (controlsDisplay) {
-            controlsDisplay.textContent = ""; // Clear controls instructions in main game view
+            controlsDisplay.textContent = ""; // Clear controls display in main game view
         }
     } catch (error) {
         console.error("[game.js] resetAndStartGame: Error during initializeGameWorld call or subsequent setup:", error, error.stack);
@@ -238,11 +240,36 @@ async function handleMouseDown(e) {
         return;
     }
 
-    if (currentScreen !== 'game' || gameState.isPaused || !gameState.player || gameState.gameOver || gameState.gameWon) return;
-
-    // Calculate world position accounting for camera and HUD offset
+    if (currentScreen !== 'game' || gameState.isPaused || !gameState.player || gameState.gameOver || gameState.gameWon) return;    // Calculate world position accounting for camera and HUD offset
     const worldX = clickX + camera.x;
-    const worldY = clickY - (gameState.isHudVisible ? GameConstants.HUD_PANEL_HEIGHT : 0) + camera.y;
+    // For defend orders and other world-space interactions, we need to account for the HUD offset in the click position
+    const adjustedClickY = gameState.isHudVisible ? clickY - GameConstants.HUD_PANEL_HEIGHT : clickY;
+    const worldY = adjustedClickY + camera.y;
+
+    // DEFEND ORDER: Ctrl+LMB
+    if (e.button === 0 && e.ctrlKey) {
+        const TILE_SIZE = gameState.map ? gameState.map.tileSize : GameConstants.DEFAULT_TILE_SIZE;
+        const defendPos = { x: worldX, y: worldY };
+        const radiusTiles = GameConstants.DEFEND_RADIUS_TILES || 10;
+        // Issue defend order to all alive teammates
+        gameState.teammates = updateTeammatesAI.handleDefendOrder(
+            gameState.teammates,
+            defendPos,
+            radiusTiles,
+            gameState.map,
+            gameState.gameTime,
+            TILE_SIZE
+        );
+        // Set defend order state
+        gameState.defendOrder = {
+            position: defendPos,
+            radius: radiusTiles * TILE_SIZE,
+            active: true,
+            issuedAt: gameState.gameTime,
+            teammateIds: gameState.teammates.filter(tm => tm.health > 0).map(tm => tm.id)
+        };
+        return;
+    }
 
     if (e.button === 0) { 
         let clickedOnFriendly = false;
@@ -485,6 +512,24 @@ function updateGame() {
     if (gameState.gameTime - gameState.lastSpawnCheckTick > GameConstants.SPAWN_CHECK_INTERVAL_TICKS) {
         updateEnemyPopulation();
         gameState.lastSpawnCheckTick = gameState.gameTime;
+    }
+
+    // Clear defend order if all teammates have been given a new move order or are dead
+    if (gameState.defendOrder) {
+        const defenders = gameState.teammates.filter(tm => gameState.defendOrder.teammateIds.includes(tm.id));
+        // A teammate is considered to have received a new move order if their targetPosition is set (and not the defend point),
+        // or if they are no longer holding position, or if they are dead
+        const allGivenMoveOrderOrDead = defenders.every(tm => {
+            if (tm.health <= 0) return true;
+            // If teammate is not holding position or has a targetPosition set (move order), consider them reassigned
+            if (!tm.isHoldingPosition || (tm.targetPosition && (!tm.holdPositionTarget || (tm.targetPosition.x !== tm.holdPositionTarget.x || tm.targetPosition.y !== tm.holdPositionTarget.y)))) {
+                return true;
+            }
+            return false;
+        });
+        if (allGivenMoveOrderOrDead) {
+            gameState.defendOrder = null;
+        }
     }
 }
 
@@ -880,19 +925,38 @@ function renderEnvironmentSelectionScreen() {
     ctx.font = "16px 'Press Start 2P'";
     ctx.fillText('Industrial', startX_row + buttonWidth / 2, row2Y + buttonHeight / 2 - 5);
     ctx.font = "8px 'Press Start 2P'";
-    ctx.fillText('Factories', startX_row + buttonWidth / 2, row2Y + buttonHeight / 2 + 15);
-
-    // Forest Button (Bottom-Right)
+    ctx.fillText('Factories', startX_row + buttonWidth / 2, row2Y + buttonHeight / 2 + 15);    // Forest Button (Bottom-Right)
     ctx.fillStyle = '#047857'; // Forest green
     ctx.fillRect(startX_row + buttonWidth + spacing, row2Y, buttonWidth, buttonHeight);
     ctx.strokeStyle = '#065F46'; ctx.strokeRect(startX_row + buttonWidth + spacing, row2Y, buttonWidth, buttonHeight);
     ctx.fillStyle = '#FFFFFF';
     ctx.font = "16px 'Press Start 2P'";
-    ctx.fillText('Forest', startX_row + buttonWidth + spacing + buttonWidth / 2, row2Y + buttonHeight / 2 - 5);
+    ctx.fillText('Forest', startX_row + buttonWidth + spacing + buttonWidth / 2, row2Y + buttonHeight / 2 - 5);    
     ctx.font = "8px 'Press Start 2P'";
     ctx.fillText('Trees & Trails', startX_row + buttonWidth + spacing + buttonWidth / 2, row2Y + buttonHeight / 2 + 15);
-
-    if(controlsDisplay) controlsDisplay.textContent = "Controls: WASD/Arrows to Move. Left-Click to Shoot. Right-Click (Selected Teammate) to Move/Waypoint (Shift+RMB). R to Recall. F to Cycle Formation. 1/2/3 to Select/Deselect Teammate. ESC to Deselect. Space to Pause.";
+    
+    // Draw instructions at the bottom with proper line spacing
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = "12px 'Press Start 2P'";
+    const lineHeight = 20; // Increased line spacing
+    let startY = canvas.height - 150; // Start higher up from the bottom
+    
+    ctx.fillText("Controls:", canvas.width / 2, startY);
+    startY += lineHeight;
+    ctx.fillText("WASD/Arrows to Move. Left-Click to Shoot.", canvas.width / 2, startY);
+    startY += lineHeight;
+    ctx.fillText("Right-Click (Selected Teammate) to Move/Waypoint (Shift+RMB).", canvas.width / 2, startY);
+    startY += lineHeight;
+    ctx.fillText("Ctrl+Left-Click to Make Teammates Defend Position.", canvas.width / 2, startY);
+    startY += lineHeight;
+    ctx.fillText("R to Recall. F to Cycle Formation.", canvas.width / 2, startY);
+    startY += lineHeight;
+    ctx.fillText("1/2/3 to Select/Deselect Teammate. ESC to Deselect.", canvas.width / 2, startY);    startY += lineHeight;
+    ctx.fillText("Space to Pause.", canvas.width / 2, startY);
+    
+    if(controlsDisplay) {
+        controlsDisplay.textContent = "Choose Your Mission Zone";
+    }
     console.log('[game.js] renderEnvironmentSelectionScreen: EXIT');
 }
 
@@ -913,22 +977,23 @@ function renderGame() {
     }
 
     drawMap(gameState.map, TILE_SIZE); 
-    
-    if (gameState.intelItems) gameState.intelItems.forEach(item => drawCharacter(item, TILE_SIZE));
+      if (gameState.intelItems) gameState.intelItems.forEach(item => drawCharacter(item, TILE_SIZE));
     if (gameState.bullets) gameState.bullets.forEach(bullet => drawBullet(bullet));
-    if (gameState.player) drawCharacter(gameState.player, TILE_SIZE, false); 
-    if (gameState.teammates) gameState.teammates.forEach(tm => drawCharacter(tm, TILE_SIZE, gameState.selectedTeammateIds.includes(tm.id), tm.targetPosition, tm.waypointQueue));
-    if (gameState.enemies) gameState.enemies.filter(e => e.health > 0).forEach(enemy => drawCharacter(enemy, TILE_SIZE));
-    if (gameState.objectives) drawObjectiveMarkers(gameState.objectives, TILE_SIZE);
     
-    ctx.restore(); // Restore context before drawing HUD
+    if (gameState.player) drawCharacter(gameState.player, TILE_SIZE, false);
+    if (gameState.teammates) gameState.teammates.forEach(tm => drawCharacter(tm, TILE_SIZE, gameState.selectedTeammateIds.includes(tm.id), tm.targetPosition, tm.waypointQueue));    if (gameState.enemies) gameState.enemies.filter(e => e.health > 0).forEach(enemy => drawCharacter(enemy, TILE_SIZE));
+    if (gameState.objectives) drawObjectiveMarkers(gameState.objectives, TILE_SIZE);
 
-    // Only draw HUD if it's visible
+    ctx.restore(); // Restore context before drawing HUD    // Only draw HUD if it's visible
     if (gameState.isHudVisible) {
         drawHud();
     }
+    
+    // Make sure controls display is empty during gameplay
+    if (controlsDisplay) {
+        controlsDisplay.textContent = "";
+    }
 }
-
 
 function renderPauseScreen() {
     console.log('[game.js] renderPauseScreen: ENTRY');
@@ -947,10 +1012,30 @@ function renderPauseScreen() {
     ctx.fillText('Resume', canvas.width / 2, canvas.height/2 + 50);
     
     ctx.fillStyle = '#EF4444'; 
-    ctx.fillRect(canvas.width/2 - 100, canvas.height/2 + 90, 200, 50);
-    ctx.fillStyle = '#000000';
+    ctx.fillRect(canvas.width/2 - 100, canvas.height/2 + 90, 200, 50);    ctx.fillStyle = '#000000';
     ctx.fillText('Restart', canvas.width / 2, canvas.height/2 + 120);
-     if(controlsDisplay) controlsDisplay.textContent = "Controls: WASD/Arrows to Move. Left-Click to Shoot. Right-Click (Selected Teammate) to Move/Waypoint (Shift+RMB). R to Recall. F to Cycle Formation. 1/2/3 to Select/Deselect Teammate. ESC to Deselect. Space to Pause.";
+      // Draw instructions at the bottom with proper line spacing
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = "12px 'Press Start 2P'";
+    const lineHeight = 20; // Increased line spacing
+    let startY = canvas.height - 150; // Start higher up from the bottom
+    
+    ctx.fillText("Controls:", canvas.width / 2, startY);
+    startY += lineHeight;
+    ctx.fillText("WASD/Arrows to Move. Left-Click to Shoot.", canvas.width / 2, startY);
+    startY += lineHeight;
+    ctx.fillText("Right-Click (Selected Teammate) to Move/Waypoint (Shift+RMB).", canvas.width / 2, startY);
+    startY += lineHeight;
+    ctx.fillText("Ctrl+Left-Click to Make Teammates Defend Position.", canvas.width / 2, startY);
+    startY += lineHeight;
+    ctx.fillText("R to Recall. F to Cycle Formation.", canvas.width / 2, startY);
+    startY += lineHeight;
+    ctx.fillText("1/2/3 to Select/Deselect Teammate. ESC to Deselect.", canvas.width / 2, startY);    startY += lineHeight;
+    ctx.fillText("Space to Resume.", canvas.width / 2, startY);
+
+    if(controlsDisplay) {
+        controlsDisplay.textContent = "Game Paused. Space to Resume.";
+    }
     console.log('[game.js] renderPauseScreen: EXIT');
 }
 
