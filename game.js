@@ -951,13 +951,19 @@ function renderEnvironmentSelectionScreen() {
     startY += lineHeight;
     ctx.fillText("R to Recall. F to Cycle Formation.", canvas.width / 2, startY);
     startY += lineHeight;
-    ctx.fillText("1/2/3 to Select/Deselect Teammate. ESC to Deselect.", canvas.width / 2, startY);    startY += lineHeight;
+    ctx.fillText("1/2/3 to Select/Deselect Teammate. ESC to Deselect.", canvas.width / 2, startY);
+    startY += lineHeight;
     ctx.fillText("Space to Pause.", canvas.width / 2, startY);
-    
+
+    // Draw version at the very bottom
+    ctx.fillStyle = '#A3A3A3';
+    ctx.font = "10px 'Press Start 2P'";
+    ctx.fillText(`Version ${GameConstants.GAME_VERSION}`, canvas.width - 90, canvas.height - 10);
+
     if(controlsDisplay) {
         controlsDisplay.textContent = "Choose Your Mission Zone";
     }
-    console.log('[game.js] renderEnvironmentSelectionScreen: EXIT');
+    //console.log('[game.js] renderEnvironmentSelectionScreen: EXIT');
 }
 
 function renderGame() {
@@ -1032,6 +1038,11 @@ function renderPauseScreen() {
     startY += lineHeight;
     ctx.fillText("1/2/3 to Select/Deselect Teammate. ESC to Deselect.", canvas.width / 2, startY);    startY += lineHeight;
     ctx.fillText("Space to Resume.", canvas.width / 2, startY);
+
+    // Draw version at the very bottom
+    ctx.fillStyle = '#A3A3A3';
+    ctx.font = "10px 'Press Start 2P'";
+    ctx.fillText(`Version ${GameConstants.GAME_VERSION}`, canvas.width - 90, canvas.height - 10);
 
     if(controlsDisplay) {
         controlsDisplay.textContent = "Game Paused. Space to Resume.";

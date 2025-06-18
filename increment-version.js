@@ -1,8 +1,9 @@
 // increment-version.js
-// Increments the patch (subversion) of the version in package.json
+// Increments the patch (subversion) of the version in package.json and updates constants.js
 import fs from 'fs';
 
 const pkgPath = './package.json';
+const constantsPath = './constants.js';
 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 
 if (!pkg.version) {
@@ -19,3 +20,12 @@ pkg.version = parts.join('.');
 
 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
 console.log('Version bumped to', pkg.version);
+
+// Update GAME_VERSION in constants.js
+const constantsSrc = fs.readFileSync(constantsPath, 'utf8');
+const newConstantsSrc = constantsSrc.replace(
+  /export const GAME_VERSION = '.*?';/,
+  `export const GAME_VERSION = '${pkg.version}';`
+);
+fs.writeFileSync(constantsPath, newConstantsSrc);
+console.log('Updated GAME_VERSION in constants.js to', pkg.version);
