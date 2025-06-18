@@ -1,18 +1,19 @@
 {
-  "name": "8-bit-commando-ops-canvas",
+  "name": "commando-ops",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-
+    "preview": "vite preview",
+    "serve": "http-server -p 8080 -c-1 dist",
+    "start": "npm run serve",
+    "prebuild": "node ./increment-version.js"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "http-server": "^14.1.1",
     "typescript": "~5.7.2",
     "vite": "^6.2.0"
   }
