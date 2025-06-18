@@ -25,8 +25,77 @@ export const processAIMovement = (
   let moved = false;
   let finalBlockedByCharacterId = null;
 
-  if (char.health <= 0) {
-    return { newX, newY, moved, blockedByCharacterId: null };
+  // --- Failsafe: Only trigger if inside a non-walkable tile (not just blocked by another character) ---
+  let stuckThreshold = Math.floor(STUCK_TIMEOUT_TICKS / 2);
+  const isCurrentlyWalkable = isPositionWalkable(
+    { x: char.x, y: char.y },
+    char.width,
+    char.height,
+    map,
+    char.id,
+    allCharacters.filter(c => c.id !== char.id && (c.health === undefined || c.health > 0) && (c.type !== EntityType.INTEL_ITEM || !c.isCollected))
+  );
+  // Determine if the block is due to a tile (not just another character)
+  const tileX = Math.floor(char.x / TILE_SIZE);
+  const tileY = Math.floor(char.y / TILE_SIZE);
+  let isBlockedByTile = false;
+  if (map && map.tiles && map.tiles[tileY] && map.tiles[tileY][tileX]) {
+    const tile = map.tiles[tileY][tileX];
+    // Consider non-walkable if it's a wall, water, or any tile type you want to treat as impassable
+    if (tile.type === 1 /* WALL */ || tile.type === 3 /* WATER */ || tile.type === 7 /* FENCE */) {
+      isBlockedByTile = true;
+    }
+  }
+  if (!isCurrentlyWalkable.isWalkable && isBlockedByTile) {
+    char.stuckCounter = (char.stuckCounter || 0) + 1;
+    if (char.stuckCounter > stuckThreshold) {
+      // Try to find a nearby walkable tile (simple spiral search)
+      let found = false;
+      let searchRadius = 1;
+      let maxRadius = 10; // up to 10 tiles away
+      let safeX = char.x, safeY = char.y;
+      while (!found && searchRadius <= maxRadius) {
+        for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+          for (let dy = -searchRadius; dy <= searchRadius; dy++) {
+            if (Math.abs(dx) !== searchRadius && Math.abs(dy) !== searchRadius) continue; // only edge of square
+            const testX = char.x + dx * TILE_SIZE;
+            const testY = char.y + dy * TILE_SIZE;
+            // Check if the candidate tile is walkable and not blocked by a tile
+            const walkCheck = isPositionWalkable({ x: testX, y: testY }, char.width, char.height, map, char.id, allCharacters.filter(c => c.id !== char.id && (c.health === undefined || c.health > 0) && (c.type !== EntityType.INTEL_ITEM || !c.isCollected)));
+            const testTileX = Math.floor(testX / TILE_SIZE);
+            const testTileY = Math.floor(testY / TILE_SIZE);
+            let testBlockedByTile = false;
+            if (map && map.tiles && map.tiles[testTileY] && map.tiles[testTileY][testTileX]) {
+              const testTile = map.tiles[testTileY][testTileX];
+              if (testTile.type === 1 || testTile.type === 3 || testTile.type === 7) {
+                testBlockedByTile = true;
+              }
+            }
+            if (walkCheck.isWalkable && !testBlockedByTile) {
+              safeX = testX;
+              safeY = testY;
+              found = true;
+              break;
+            }
+          }
+          if (found) break;
+        }
+        searchRadius++;
+      }
+      char.x = safeX;
+      char.y = safeY;
+      newX = safeX;
+      newY = safeY;
+      char.currentPath = null;
+      char.currentPathIndex = 0;
+      char.stuckCounter = 0;
+      return { newX, newY, moved: false, blockedByCharacterId: null };
+    }
+  } else if (!isCurrentlyWalkable.isWalkable) {
+    // Blocked, but not by a tile (likely another character): do not increment stuckCounter for failsafe
+    // Optionally, you could increment a separate counter for crowding, but do not teleport
+  } else {
+    char.stuckCounter = 0;
   }
 
   let currentActualTarget = intendedTargetPos;
@@ -204,6 +273,26 @@ export const processAIMovement = (
 
   newX = Math.max(0, Math.min(newX, mapPixelWidth - char.width));
   newY = Math.max(0, Math.min(newY, mapPixelHeight - char.height));
+
+  // After all movement logic, before returning, enforce walkability at newX/newY
+  const walkableCheck = isPositionWalkable(
+    { x: newX, y: newY },
+    char.width,
+    char.height,
+    map,
+    char.id,
+    allCharacters.filter(c => c.id !== char.id && (c.health === undefined || c.health > 0) && (c.type !== EntityType.INTEL_ITEM || !c.isCollected))
+  );
+  if (!walkableCheck.isWalkable) {
+    // Revert to previous position, trigger stuck logic
+    newX = originalX;
+    newY = originalY;
+    moved = false;
+    char.stuckCounter = Math.min((char.stuckCounter || 0) + 1, STUCK_TIMEOUT_TICKS);
+    char.currentPath = null;
+    char.currentPathIndex = 0;
+    finalBlockedByCharacterId = walkableCheck.blockedByCharacterId || finalBlockedByCharacterId;
+  }
 
   return { newX, newY, moved, blockedByCharacterId: moved ? null : finalBlockedByCharacterId };
 };
