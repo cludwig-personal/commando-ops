@@ -461,6 +461,15 @@ const update = (
             let enemy = livingSquadMembers[j]; 
             const assignedSlotIndex = memberToSlotMap.get(enemy.id);
 
+            // --- AI Collision Avoidance ---
+            const separationVec = getSeparationVector(enemy, currentAllCharacters);
+            if (separationVec) {
+                if (typeof enemy.dx !== 'number') enemy.dx = 0;
+                if (typeof enemy.dy !== 'number') enemy.dy = 0;
+                enemy.dx = (enemy.dx * 0.7) + (separationVec.x * 0.3);
+                enemy.dy = (enemy.dy * 0.7) + (separationVec.y * 0.3);
+            }
+
             if (enemy.isPerformingEvasiveManeuver && enemy.evasiveManeuverTarget) {
                 const { newX, newY, moved } = processAIMovement(enemy, enemy.evasiveManeuverTarget, map, currentAllCharacters, gameTime, TILE_SIZE);
                 enemy.x = newX; enemy.y = newY;
@@ -592,6 +601,15 @@ const update = (
     const nonSquadEnemies = enemiesArrayForThisTick.filter(e => !e.squadId && e.health > 0);
     for (let k=0; k < nonSquadEnemies.length; k++) {
         let enemy = nonSquadEnemies[k];
+
+        // --- AI Collision Avoidance ---
+        const separationVec = getSeparationVector(enemy, currentAllCharacters);
+        if (separationVec) {
+            if (typeof enemy.dx !== 'number') enemy.dx = 0;
+            if (typeof enemy.dy !== 'number') enemy.dy = 0;
+            enemy.dx = (enemy.dx * 0.7) + (separationVec.x * 0.3);
+            enemy.dy = (enemy.dy * 0.7) + (separationVec.y * 0.3);
+        }
 
         if (enemy.isPerformingEvasiveManeuver && enemy.evasiveManeuverTarget) {
              const { newX, newY, moved } = processAIMovement(enemy, enemy.evasiveManeuverTarget, map, currentAllCharacters, gameTime, TILE_SIZE);
@@ -759,18 +777,36 @@ function getSeparationVector(ai, others, separationDist = ai.width) {
     return null;
 }
 
-// In the main enemy AI update loop, before moving an enemy:
-// (Assume this is inside the enemy update function, per-enemy)
-// ...existing code...
-// Collision avoidance with other enemies and player/teammates
-const allCharacters = [...gameState.enemies, ...gameState.teammates, gameState.player];
-const separationVec = getSeparationVector(enemy, allCharacters);
-if (separationVec) {
-    // Blend avoidance with current movement
-    enemy.dx = (enemy.dx * 0.7) + (separationVec.x * 0.3);
-    enemy.dy = (enemy.dy * 0.7) + (separationVec.y * 0.3);
-}
-// ...existing code for movement and pathfinding...
-// When moving, always check isPositionWalkable for the next position
-// If not walkable, try to slide along X or Y, or pick a new direction
-// ...existing code...
+// In the main per-enemy update loop (for both squad and non-squad enemies), before calling processAIMovement:
+//
+// Example for squad enemies:
+// for (let j = 0; j < livingSquadMembers.length; j++) {
+//     let enemy = livingSquadMembers[j];
+//     ...
+//     // AI collision avoidance
+//     const separationVec = getSeparationVector(enemy, currentAllCharacters);
+//     if (separationVec) {
+//         if (typeof enemy.dx !== 'number') enemy.dx = 0;
+//         if (typeof enemy.dy !== 'number') enemy.dy = 0;
+//         enemy.dx = (enemy.dx * 0.7) + (separationVec.x * 0.3);
+//         enemy.dy = (enemy.dy * 0.7) + (separationVec.y * 0.3);
+//     }
+//     ...
+//     // then call processAIMovement(...)
+// }
+//
+// Example for non-squad enemies:
+// for (let k=0; k < nonSquadEnemies.length; k++) {
+//     let enemy = nonSquadEnemies[k];
+//     ...
+//     // AI collision avoidance
+//     const separationVec = getSeparationVector(enemy, currentAllCharacters);
+//     if (separationVec) {
+//         if (typeof enemy.dx !== 'number') enemy.dx = 0;
+//         if (typeof enemy.dy !== 'number') enemy.dy = 0;
+//         enemy.dx = (enemy.dx * 0.7) + (separationVec.x * 0.3);
+//         enemy.dy = (enemy.dy * 0.7) + (separationVec.y * 0.3);
+//     }
+//     ...
+//     // then call processAIMovement(...)
+// }

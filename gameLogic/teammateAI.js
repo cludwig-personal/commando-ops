@@ -474,8 +474,11 @@ const handleDefendOrder = (
     return updatedTeammates;
 };
 
+// Rename 'update' to 'updateTeammatesAI' for export consistency
+const updateTeammatesAI = update;
+
 export {
-    update,
+    updateTeammatesAI,
     handleRecall,
     handleMoveOrder,
     handleDefendOrder,

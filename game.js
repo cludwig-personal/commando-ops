@@ -3,7 +3,7 @@ import * as GameConstants from './constants.js';
 import * as GameTypes from './types.js';
 import { initializeGameWorld, spawnSquadInSector } from './gameLogic/initialization.js';
 import { updatePlayerLogic } from './gameLogic/playerLogic.js';
-import { update as updateTeammatesAI } from './gameLogic/teammateAI.js';
+import { updateTeammatesAI } from './gameLogic/teammateAI.js';
 import { updateEnemiesAI } from './gameLogic/enemyAI.js';
 import { updateBulletsLogic } from './gameLogic/bulletLogic.js';
 import { updateObjectiveLogic } from './gameLogic/objectiveLogic.js';
@@ -414,7 +414,7 @@ function updateGame() {
     
     const playerOriginalPositionForTick = { x: gameState.player.x, y: gameState.player.y };
 
-    const teammatesUpdate = updateTeammatesAI.update(
+    const teammatesUpdate = updateTeammatesAI(
         mutableTeammates, mutablePlayer, playerOriginalPositionForTick, mutableEnemies, mutableMap, allCharsForCollision, 
         gameState.gameTime, TILE_SIZE, gameState.currentFormationShape, gameState.gameTime 
     );
