@@ -3,7 +3,7 @@ import * as GameConstants from './constants.js';
 import * as GameTypes from './types.js';
 import { initializeGameWorld, spawnSquadInSector } from './gameLogic/initialization.js';
 import { updatePlayerLogic } from './gameLogic/playerLogic.js';
-import { updateTeammatesAI } from './gameLogic/teammateAI.js';
+import { update as updateTeammatesAI } from './gameLogic/teammateAI.js';
 import { updateEnemiesAI } from './gameLogic/enemyAI.js';
 import { updateBulletsLogic } from './gameLogic/bulletLogic.js';
 import { updateObjectiveLogic } from './gameLogic/objectiveLogic.js';

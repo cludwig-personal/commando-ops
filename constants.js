@@ -2,7 +2,7 @@
 import { TileType, EnemyVariant, FormationShape } from './types.js';
 console.log('[constants.js] Module loaded successfully.');
 
-export const GAME_VERSION = '0.0.30'; // Update this as needed
+export const GAME_VERSION = '0.0.32'; // Update this as needed
 
 export const TILE_SIZE = 14;
 export const DEFAULT_TILE_SIZE = TILE_SIZE; 
@@ -194,7 +194,7 @@ export const RESPAWN_DELAY_TICKS = Infinity; // Prevent respawn of squads and ge
 export const STUCK_TIMEOUT_TICKS = 120; 
 export const STUCK_RECOVERY_PATROL_RADIUS = TILE_SIZE * 10;
 
-export const AI_TARGET_ARRIVAL_THRESHOLD = TILE_SIZE * 0.5; 
+export const AI_TARGET_ARRIVAL_THRESHOLD = TILE_SIZE * 0.3; 
 export const AI_PATIENCE_THRESHOLD = 60; 
 
 export const PATHFINDING_MAX_NODES_EXPLORED = 250; 

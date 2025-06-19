@@ -60,6 +60,44 @@ const update = (
         let teammate = { ...tm }; 
         const originalPosForTick = {x: tm.x, y: tm.y};
 
+        // --- AI COLLISION AVOIDANCE LOGIC ---
+        // Only apply if not performing evasive maneuver
+        if (!teammate.isPerformingEvasiveManeuver) {
+            // Avoid other teammates (repulsion)
+            for (const other of teammates) {
+                if (other.id === teammate.id || other.health <= 0) continue;
+                const dx = teammate.x - other.x;
+                const dy = teammate.y - other.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const minDist = TEAMMATE_SIZE * 0.9; // Slightly less than size to allow some overlap
+                if (dist > 0 && dist < minDist) {
+                    // Repulsion force: push away from other teammate
+                    const pushStrength = 0.25 * (minDist - dist) / minDist; // Scaled repulsion
+                    teammate.x += (dx / dist) * pushStrength * TEAMMATE_SIZE;
+                    teammate.y += (dy / dist) * pushStrength * TEAMMATE_SIZE;
+                }
+            }
+            // Avoid being inside walls/objects (nudge out if not walkable)
+            const walkableResult = isPositionWalkable({ x: teammate.x, y: teammate.y }, teammate.width, teammate.height, map, teammate.id, allCharacters.filter(c => c.id !== teammate.id));
+            if (!walkableResult.isWalkable) {
+                // Try to nudge in a random direction until walkable (up to 8 tries)
+                let nudged = false;
+                for (let attempt = 0; attempt < 8; attempt++) {
+                    const angle = Math.random() * 2 * Math.PI;
+                    const nudgeDist = TEAMMATE_SIZE * 0.5;
+                    const nx = teammate.x + Math.cos(angle) * nudgeDist;
+                    const ny = teammate.y + Math.sin(angle) * nudgeDist;
+                    if (isPositionWalkable({ x: nx, y: ny }, teammate.width, teammate.height, map, teammate.id, allCharacters.filter(c => c.id !== teammate.id)).isWalkable) {
+                        teammate.x = nx;
+                        teammate.y = ny;
+                        nudged = true;
+                        break;
+                    }
+                }
+                // If still not walkable, leave as is (failsafe: will be handled by stuck logic elsewhere)
+            }
+        }
+
         if (teammate.isPerformingEvasiveManeuver && teammate.evasiveManeuverTarget) {
             const { newX, newY, moved: evasionMoved } = processAIMovement(teammate, teammate.evasiveManeuverTarget, map, allCharacters, newGameTime, TILE_SIZE);
             teammate.x = newX; teammate.y = newY;
@@ -413,46 +451,32 @@ const handleDefendOrder = (
     };
 
     const updatedTeammates = teammates.map(tm => {
-        if (tm.health <= 0) return tm;
-
-        // Calculate the index of this teammate among active teammates
-        const activeIndex = activeTeammates.findIndex(t => t.id === tm.id);
-        
-        // Calculate the angle for this teammate to be evenly spaced around the circle
-        const angle = (activeIndex * (2 * Math.PI)) / activeTeammates.length;
-        const dist = radiusTiles * TILE_SIZE; // Use full radius for perimeter placement
-        
-        // Calculate initial position on the perimeter
-        const initialX = defendPosition.x + Math.cos(angle) * dist;
-        const initialY = defendPosition.y + Math.sin(angle) * dist;
-
-        // Find a walkable position near the calculated point
-        const walkablePos = findWalkablePosition(initialX, initialY);
-
-        return {
-            ...tm,
-            targetPosition: walkablePos,
-            isHoldingPosition: true,
-            holdPositionTarget: walkablePos,
-            commandedMoveTime: gameTime,
-            currentPath: null,
-            currentPathIndex: 0,
-            waypointQueue: [],
-            effectiveFormationTarget: null,
-            targetEntityId: null,
-            isPerformingEvasiveManeuver: false,
-            evasiveManeuverTarget: null
-        };
+        if (tm.health > 0) {
+            const defendTargetPos = findWalkablePosition(defendPosition.x, defendPosition.y, radiusTiles);
+            return {
+                ...tm,
+                targetPosition: defendTargetPos, 
+                targetEntityId: null,
+                commandedMoveTime: gameTime, 
+                currentPath: null,
+                currentPathIndex: 0,
+                waypointQueue: [], 
+                isHoldingPosition: false, 
+                holdPositionTarget: null, 
+                isPerformingEvasiveManeuver: false, 
+                evasiveManeuverTarget: null,
+                effectiveFormationTarget: null,
+            };
+        }
+        return tm;
     });
+
     return updatedTeammates;
 };
 
-const updateTeammatesAI = {
+export {
     update,
     handleRecall,
     handleMoveOrder,
     handleDefendOrder,
-    triggerEvasiveManuever: triggerAIEvasiveManeuver,
 };
-
-export { updateTeammatesAI };

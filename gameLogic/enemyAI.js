@@ -730,3 +730,47 @@ export const updateEnemiesAI = {
     update,
     triggerEvasiveManuever: triggerAIEvasiveManeuver, 
 };
+
+// --- AI Collision Avoidance Helper ---
+function getSeparationVector(ai, others, separationDist = ai.width) {
+    let steerX = 0, steerY = 0, count = 0;
+    for (const other of others) {
+        if (other === ai || !other.x || !other.y) continue;
+        const dx = ai.x - other.x;
+        const dy = ai.y - other.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 0 && dist < separationDist * 1.2) {
+            steerX += dx / dist;
+            steerY += dy / dist;
+            count++;
+        }
+    }
+    if (count > 0) {
+        steerX /= count;
+        steerY /= count;
+        // Normalize
+        const mag = Math.sqrt(steerX * steerX + steerY * steerY);
+        if (mag > 0) {
+            steerX = (steerX / mag) * ai.speed;
+            steerY = (steerY / mag) * ai.speed;
+        }
+        return { x: steerX, y: steerY };
+    }
+    return null;
+}
+
+// In the main enemy AI update loop, before moving an enemy:
+// (Assume this is inside the enemy update function, per-enemy)
+// ...existing code...
+// Collision avoidance with other enemies and player/teammates
+const allCharacters = [...gameState.enemies, ...gameState.teammates, gameState.player];
+const separationVec = getSeparationVector(enemy, allCharacters);
+if (separationVec) {
+    // Blend avoidance with current movement
+    enemy.dx = (enemy.dx * 0.7) + (separationVec.x * 0.3);
+    enemy.dy = (enemy.dy * 0.7) + (separationVec.y * 0.3);
+}
+// ...existing code for movement and pathfinding...
+// When moving, always check isPositionWalkable for the next position
+// If not walkable, try to slide along X or Y, or pick a new direction
+// ...existing code...
