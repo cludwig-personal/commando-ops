@@ -423,11 +423,9 @@ const handleDefendOrder = (
             undefined, // characterIdToIgnore
             [] // empty array for allCharacters since we only care about terrain
         );
-        
         if (exactPosResult.isWalkable) {
             return { x: baseX, y: baseY };
         }
-
         // If not walkable, spiral outward looking for a walkable spot
         for (let r = 1; r <= searchRadius * TILE_SIZE; r++) {
             for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
@@ -452,7 +450,14 @@ const handleDefendOrder = (
 
     const updatedTeammates = teammates.map(tm => {
         if (tm.health > 0) {
-            const defendTargetPos = findWalkablePosition(defendPosition.x, defendPosition.y, radiusTiles);
+            // Calculate the index of this teammate among active teammates
+            const activeIndex = activeTeammates.findIndex(t => t.id === tm.id);
+            // Calculate the angle for this teammate to be evenly spaced around the circle
+            const angle = (activeIndex * (2 * Math.PI)) / activeTeammates.length;
+            const dist = radiusTiles * TILE_SIZE;
+            const initialX = defendPosition.x + Math.cos(angle) * dist;
+            const initialY = defendPosition.y + Math.sin(angle) * dist;
+            const defendTargetPos = findWalkablePosition(initialX, initialY, radiusTiles);
             return {
                 ...tm,
                 targetPosition: defendTargetPos, 
