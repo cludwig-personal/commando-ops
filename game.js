@@ -3,7 +3,7 @@ import * as GameConstants from './constants.js';
 import * as GameTypes from './types.js';
 import { initializeGameWorld, spawnSquadInSector } from './gameLogic/initialization.js';
 import { updatePlayerLogic } from './gameLogic/playerLogic.js';
-import { updateTeammatesAI, handleMoveOrder, handleDefendOrder } from './gameLogic/teammateAI.js';
+import { updateTeammatesAI, handleRecall, handleMoveOrder, handleDefendOrder } from './gameLogic/teammateAI.js';
 import { updateEnemiesAI } from './gameLogic/enemyAI.js';
 import { updateBulletsLogic } from './gameLogic/bulletLogic.js';
 import { updateObjectiveLogic } from './gameLogic/objectiveLogic.js';
@@ -136,9 +136,10 @@ function handleKeyDown(e) {
         gameState.keysPressed[key.toLowerCase()] = true; 
         if (key === 'r' && gameState.player && gameState.map) {
             const TILE_SIZE = gameState.map.tileSize;
-            gameState.teammates = updateTeammatesAI.handleRecall(
+            gameState.teammates = handleRecall(
                 gameState.teammates, gameState.player, gameState.currentFormationShape, gameState.gameTime, TILE_SIZE
             );
+            gameState.defendOrder = null; // Clear defend order so teammates can be recalled from defense
         }
         if (key === 'f') {
             cycleFormation();
@@ -277,7 +278,8 @@ async function handleMouseDown(e) {
         
         if (isPointInRect({x: worldX, y: worldY}, gameState.player.x, gameState.player.y, gameState.player.width, gameState.player.height)) {
              const TILE_SIZE = gameState.map ? gameState.map.tileSize : GameConstants.DEFAULT_TILE_SIZE;
-            gameState.teammates = updateTeammatesAI.handleRecall(gameState.teammates, gameState.player, gameState.currentFormationShape, gameState.gameTime, TILE_SIZE);
+            gameState.teammates = handleRecall(gameState.teammates, gameState.player, gameState.currentFormationShape, gameState.gameTime, TILE_SIZE);
+            gameState.defendOrder = null; // Clear defend order so clicking player recalls teammates from defense
             clickedOnFriendly = true;
         } else {
             for (const tm of gameState.teammates) {

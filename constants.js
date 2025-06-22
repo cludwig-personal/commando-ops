@@ -2,7 +2,7 @@
 import { TileType, EnemyVariant, FormationShape } from './types.js';
 console.log('[constants.js] Module loaded successfully.');
 
-export const GAME_VERSION = '0.0.42'; // Update this as needed
+export const GAME_VERSION = '0.0.45'; // Update this as needed
 
 export const TILE_SIZE = 14;
 export const DEFAULT_TILE_SIZE = TILE_SIZE; 
@@ -165,7 +165,7 @@ export const INTEL_ITEM_STROKE_COLOR = '#BFDBFE';
 export const NUM_INTEL_TO_COLLECT = 3;
 
 // Enemy Squad Constants
-export const MAX_ENEMY_SQUADS = 12;
+export const MAX_ENEMY_SQUADS = 8;
 export const ENEMY_SQUAD_COMPOSITION = {
     [EnemyVariant.SOLDIER]: 2,
     [EnemyVariant.GRENADIER]: 1,
@@ -184,12 +184,12 @@ export const SQUAD_POST_COMBAT_REGROUP_GRACE_PERIOD_TICKS = 200; // Approx 10 se
 export const MAX_GENERIC_BOSSES = 2; // New: Max non-HVT yellow bosses
 
 // Dynamic Spawning Constants
-export const ACTIVE_SQUAD_LIMIT = 0; // Disable dynamic squad spawning
+export const ACTIVE_SQUAD_LIMIT = 4; // Disable dynamic squad spawning
 export const SQUAD_SPAWN_RADIUS_TILES = 70; // Spawn squads just outside this radius
 export const SQUAD_DESPAWN_RADIUS_TILES = 90; // Despawn squads beyond this radius
-export const SPAWN_CHECK_INTERVAL_TICKS = 200; // Check every 5 seconds (100 * 50ms)
+export const SPAWN_CHECK_INTERVAL_TICKS = 100; // Check every 5 seconds (100 * 50ms)
 
-export const RESPAWN_DELAY_TICKS = Infinity; // Prevent respawn of squads and generic bosses
+export const RESPAWN_DELAY_TICKS = 1200; // Prevent respawn of squads and generic bosses
 
 export const STUCK_TIMEOUT_TICKS = 120; 
 export const STUCK_RECOVERY_PATROL_RADIUS = TILE_SIZE * 10;

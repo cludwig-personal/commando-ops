@@ -466,8 +466,8 @@ const handleDefendOrder = (
                 currentPath: null,
                 currentPathIndex: 0,
                 waypointQueue: [], 
-                isHoldingPosition: false, 
-                holdPositionTarget: null, 
+                isHoldingPosition: true, // Set to true so they hold the defend position
+                holdPositionTarget: defendTargetPos, // Set the hold position to the defend spot
                 isPerformingEvasiveManeuver: false, 
                 evasiveManeuverTarget: null,
                 effectiveFormationTarget: null,
